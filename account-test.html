@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Tabzoid — Account &amp; Database Test</title>
+
+  <style>
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e; --danger:#ff6b6b; --ok:#57d38c;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    body{
+      margin:0; background:var(--bg); color:var(--ink); font-family:var(--body);
+      line-height:1.5; padding:32px 18px; -webkit-font-smoothing:antialiased;
+    }
+    .wrap{ max-width:560px; margin:0 auto; }
+    h1{ font-size:1.4rem; margin:0 0 4px; }
+    .lede{ color:var(--muted); margin:0 0 24px; font-size:.95rem; }
+    .card{
+      background:var(--bg-elev); border:1px solid var(--border); border-radius:14px;
+      padding:20px; margin-bottom:18px;
+    }
+    .card h2{ font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 14px; }
+    label{ display:block; font-size:.8rem; color:var(--muted); margin:0 0 5px; }
+    input{
+      width:100%; padding:11px 12px; margin-bottom:12px; border-radius:9px;
+      border:1px solid var(--border); background:#0f0f15; color:var(--ink); font-size:.95rem;
+    }
+    input:focus{ outline:none; border-color:var(--accent); }
+    .row{ display:flex; gap:9px; flex-wrap:wrap; }
+    button{
+      appearance:none; border:1px solid var(--border); background:#1c1930; color:var(--ink);
+      padding:10px 16px; border-radius:9px; font-size:.9rem; cursor:pointer; font-weight:600;
+      transition:border-color .15s ease, background .15s ease;
+    }
+    button:hover{ border-color:var(--accent); background:#241f3d; }
+    button.primary{ background:var(--accent-dark); border-color:var(--accent); }
+    button.primary:hover{ background:var(--accent); }
+    button:disabled{ opacity:.5; cursor:not-allowed; }
+    .msg{ font-size:.85rem; margin-top:10px; min-height:1.2em; }
+    .msg.err{ color:var(--danger); }
+    .msg.ok{ color:var(--ok); }
+    .who{ font-size:.9rem; }
+    .who b{ color:#cdbcff; }
+    .pill{ display:inline-block; font-size:.72rem; padding:3px 9px; border-radius:999px; background:#0f0f15; border:1px solid var(--border); color:var(--muted); }
+    ul.finds{ list-style:none; margin:12px 0 0; padding:0; }
+    ul.finds li{ padding:10px 12px; border:1px solid var(--border); border-radius:9px; margin-bottom:8px; background:#0f0f15; font-size:.9rem; }
+    ul.finds li .b{ font-weight:600; color:#dcd6ff; }
+    ul.finds li .n{ color:var(--muted); }
+    .hidden{ display:none; }
+    code{ background:#0f0f15; border:1px solid var(--border); padding:1px 5px; border-radius:5px; font-size:.85em; }
+    .foot{ color:var(--muted); font-size:.8rem; text-align:center; margin-top:8px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1>Account &amp; Database Test</h1>
+    <p class="lede">A private sandbox to confirm Supabase sign-in and the database are wired up. Not linked anywhere and marked no-index.</p>
+
+    <!-- SIGNED OUT -->
+    <div id="authCard" class="card">
+      <h2>Sign up or log in</h2>
+      <label for="email">Email</label>
+      <input id="email" type="email" placeholder="you@example.com" autocomplete="email" />
+      <label for="pass">Password</label>
+      <input id="pass" type="password" placeholder="at least 6 characters" autocomplete="current-password" />
+      <div class="row">
+        <button id="signupBtn" class="primary">Create account</button>
+        <button id="loginBtn">Log in</button>
+      </div>
+      <div id="authMsg" class="msg"></div>
+    </div>
+
+    <!-- SIGNED IN -->
+    <div id="userCard" class="card hidden">
+      <h2>Signed in</h2>
+      <p class="who">You are <b id="userEmail"></b> <span class="pill" id="userId"></span></p>
+      <div class="row" style="margin-top:10px">
+        <button id="logoutBtn">Log out</button>
+      </div>
+    </div>
+
+    <!-- DB TEST -->
+    <div id="findsCard" class="card hidden">
+      <h2>Your tab finds <span class="pill">RLS-protected</span></h2>
+      <label for="brand">Brand</label>
+      <input id="brand" type="text" placeholder="e.g. Jolt Cola" />
+      <label for="note">Note (optional)</label>
+      <input id="note" type="text" placeholder="e.g. found in a 1987 time capsule" />
+      <button id="addBtn" class="primary">Log this find</button>
+      <div id="findsMsg" class="msg"></div>
+      <ul id="findsList" class="finds"></ul>
+    </div>
+
+    <p class="foot">Data is protected by row-level security — you only ever see your own finds.</p>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    // ---- Tabzoid Supabase project ----
+    const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const $ = (id) => document.getElementById(id);
+    const authCard = $("authCard"), userCard = $("userCard"), findsCard = $("findsCard");
+
+    function setMsg(el, text, kind){ el.className = "msg" + (kind ? " " + kind : ""); el.textContent = text || ""; }
+
+    async function refreshUI(){
+      const { data:{ session } } = await sb.auth.getSession();
+      if (session){
+        authCard.classList.add("hidden");
+        userCard.classList.remove("hidden");
+        findsCard.classList.remove("hidden");
+        $("userEmail").textContent = session.user.email;
+        $("userId").textContent = session.user.id.slice(0, 8) + "…";
+        loadFinds();
+      } else {
+        authCard.classList.remove("hidden");
+        userCard.classList.add("hidden");
+        findsCard.classList.add("hidden");
+      }
+    }
+
+    // ---- auth ----
+    $("signupBtn").addEventListener("click", async () => {
+      const email = $("email").value.trim(), password = $("pass").value;
+      setMsg($("authMsg"), "Creating account…");
+      const { data, error } = await sb.auth.signUp({ email, password });
+      if (error) return setMsg($("authMsg"), error.message, "err");
+      if (data.session) { setMsg($("authMsg"), "Account created — you're in.", "ok"); refreshUI(); }
+      else setMsg($("authMsg"), "Account created. Check your email to confirm, then log in.", "ok");
+    });
+
+    $("loginBtn").addEventListener("click", async () => {
+      const email = $("email").value.trim(), password = $("pass").value;
+      setMsg($("authMsg"), "Logging in…");
+      const { error } = await sb.auth.signInWithPassword({ email, password });
+      if (error) return setMsg($("authMsg"), error.message, "err");
+      setMsg($("authMsg"), "");
+    });
+
+    $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); });
+
+    // ---- database (tab_finds) ----
+    async function loadFinds(){
+      const { data, error } = await sb.from("tab_finds")
+        .select("id, brand, note, found_at")
+        .order("found_at", { ascending:false });
+      const list = $("findsList");
+      if (error){ setMsg($("findsMsg"), error.message, "err"); return; }
+      list.innerHTML = "";
+      if (!data.length){ list.innerHTML = '<li class="n">No finds logged yet — add one above.</li>'; return; }
+      for (const f of data){
+        const li = document.createElement("li");
+        li.innerHTML = '<span class="b"></span><span class="n"></span>';
+        li.querySelector(".b").textContent = f.brand;
+        li.querySelector(".n").textContent = f.note ? " — " + f.note : "";
+        list.appendChild(li);
+      }
+    }
+
+    $("addBtn").addEventListener("click", async () => {
+      const brand = $("brand").value.trim(), note = $("note").value.trim();
+      if (!brand) return setMsg($("findsMsg"), "Enter a brand first.", "err");
+      setMsg($("findsMsg"), "Saving…");
+      // user_id defaults to auth.uid() in the database
+      const { error } = await sb.from("tab_finds").insert({ brand, note: note || null });
+      if (error) return setMsg($("findsMsg"), error.message, "err");
+      $("brand").value = ""; $("note").value = "";
+      setMsg($("findsMsg"), "Saved.", "ok");
+      loadFinds();
+    });
+
+    // react to login/logout everywhere
+    sb.auth.onAuthStateChange(() => refreshUI());
+    refreshUI();
+  </script>
+</body>
+</html>

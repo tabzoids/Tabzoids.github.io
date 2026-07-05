@@ -96,6 +96,36 @@
       max-width:46ch; margin:0;
     }
 
+    .signup{
+      width:100%; max-width:440px; margin:2px 0 4px;
+    }
+    .signup form{
+      display:flex; gap:9px; flex-wrap:wrap; justify-content:center;
+    }
+    .signup input[type="email"]{
+      flex:1 1 220px; min-width:0;
+      padding:12px 14px; border-radius:11px;
+      border:1px solid var(--border); background:var(--bg-elev); color:var(--ink);
+      font-size:1rem; font-family:var(--body);
+    }
+    .signup input[type="email"]::placeholder{ color:#6f6f80; }
+    .signup input[type="email"]:focus{ outline:none; border-color:var(--accent); }
+    .signup button{
+      flex:0 0 auto; appearance:none; cursor:pointer; font-weight:600;
+      padding:12px 20px; border-radius:11px; font-size:1rem;
+      color:#fff; background:var(--accent-dark); border:1px solid var(--accent);
+      font-family:var(--body);
+      transition:background .15s ease, transform .15s ease;
+    }
+    .signup button:hover{ background:var(--accent); }
+    .signup button:active{ transform:translateY(1px); }
+    .signup button:disabled{ opacity:.55; cursor:not-allowed; }
+    .signup .note{
+      min-height:1.2em; margin:10px 2px 0; font-size:.86rem; color:var(--muted);
+    }
+    .signup .note.ok{ color:#57d38c; }
+    .signup .note.err{ color:#ff6b6b; }
+
     .socials{
       display:flex; flex-wrap:wrap; gap:12px; justify-content:center;
       margin-top:6px; max-width:520px;
@@ -125,6 +155,15 @@
     <img class="logo" src="tabzoid-dark.webp" alt="Tabzoid" width="765" height="171">
     <h1 class="slogan">The Global Compendium<br>of Collected Can Tabs</h1>
     <p class="intro">A playful, ever-growing archive of the humble can tab — collected, cataloged, and celebrated by tabists the world over. We're building it now. Follow along.</p>
+
+    <div class="signup">
+      <form id="signupForm" novalidate>
+        <label for="signupEmail" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Email address</label>
+        <input id="signupEmail" type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
+        <button id="signupBtn" type="submit">Notify me</button>
+      </form>
+      <p class="note" id="signupNote" role="status" aria-live="polite">Keep Tabs on Us. No Ads, Just Tabs!</p>
+    </div>
 
     <nav class="socials" aria-label="Tabzoid on social media">
       <a class="social" href="https://x.com/tabzoid" target="_blank" rel="noopener noreferrer" aria-label="Tabzoid on X">
@@ -159,5 +198,58 @@
   </footer>
 
   <script>document.getElementById("yr").textContent = new Date().getFullYear();</script>
+
+  <!-- Email capture → Supabase waitlist -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    (function () {
+      const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+      const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+      const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+      const form = document.getElementById("signupForm");
+      const input = document.getElementById("signupEmail");
+      const btn = document.getElementById("signupBtn");
+      const note = document.getElementById("signupNote");
+
+      function setNote(text, kind) {
+        note.className = "note" + (kind ? " " + kind : "");
+        note.textContent = text;
+      }
+
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = input.value.trim();
+        if (!email || !input.checkValidity()) {
+          setNote("Please enter a valid email address.", "err");
+          input.focus();
+          return;
+        }
+
+        btn.disabled = true;
+        setNote("Adding you to the list…");
+
+        const { error } = await sb
+          .from("waitlist")
+          .insert({ email, source: "landing" });
+
+        if (error) {
+          // 23505 = unique_violation → already on the list
+          if (error.code === "23505" || /duplicate/i.test(error.message)) {
+            setNote("You're already on the list — see you soon.", "ok");
+            input.value = "";
+          } else {
+            setNote("Something went wrong. Please try again.", "err");
+            btn.disabled = false;
+          }
+          return;
+        }
+
+        setNote("You're Added to the Tab List!", "ok");
+        input.value = "";
+        input.disabled = true;
+      });
+    })();
+  </script>
 </body>
 </html>

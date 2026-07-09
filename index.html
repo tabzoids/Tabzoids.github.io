@@ -156,6 +156,21 @@
       font-family:"Opsilon",var(--body); font-weight:400;
       font-size:clamp(1.35rem,3.9vw,2.2rem); line-height:1.12; margin:0; color:#4f00c1;
     }
+    /* periodic shimmer pass across the tagline */
+    @supports ((-webkit-background-clip:text) or (background-clip:text)){
+      .slogan{
+        background:linear-gradient(100deg,#4f00c1 0%,#4f00c1 43%,#b389ff 50%,#4f00c1 57%,#4f00c1 100%);
+        background-size:220% 100%; background-position:150% 0;
+        -webkit-background-clip:text; background-clip:text;
+        -webkit-text-fill-color:transparent; color:transparent;
+        animation:sloganShimmer 6s ease-in-out infinite;
+      }
+    }
+    @keyframes sloganShimmer{
+      0%{ background-position:150% 0; }
+      16%,100%{ background-position:-50% 0; }
+    }
+    @media (prefers-reduced-motion:reduce){ .slogan{ animation:none; } }
     .intro{
       color:var(--muted); font-size:clamp(1rem,2vw,1.16rem); line-height:1.6;
       max-width:46ch; margin:0;
@@ -272,13 +287,13 @@
     One tab at a time our collection is growing.</p>
 
     <div class="signup">
-      <p class="signup-cta">Subscribe to keep tabs on us</p>
+      <p class="signup-cta">Join to keep tabs on us</p>
       <form id="signupForm" novalidate>
         <label for="signupEmail" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Email address</label>
         <input id="signupEmail" type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
         <button id="signupBtn" type="submit">Subscribe</button>
       </form>
-      <p class="note" id="signupNote" role="status" aria-live="polite">No Ads, Just Tabs!</p>
+      <p class="note" id="signupNote" role="status" aria-live="polite"></p>
     </div>
 
     <nav class="socials" aria-label="Tabzoid on social media">
@@ -352,7 +367,8 @@
         "you@example.com",
         "your best email…",
         "join the archive…",
-        "keep tabs with us…"
+        "keep tabs with us…",
+        "No Ads, Just Tabs!"
       ];
       let p = 0, i = 0, deleting = false, base = "", caretOn = true;
 

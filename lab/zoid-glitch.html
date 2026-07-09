@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Zoid Glitch Lab</title>
+  <style>
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --border:#25252e;
+      --glitch-red:#ff4757; --glitch-cyan:#00d9ff;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;}
+    body{
+      background:radial-gradient(1000px 600px at 50% -10%, rgba(138,102,255,.14), transparent 60%), var(--bg);
+      color:var(--ink); font-family:var(--body); min-height:100vh;
+      display:flex; flex-direction:column; align-items:center; -webkit-font-smoothing:antialiased;
+    }
+    h1{ font-size:1.05rem; letter-spacing:.16em; text-transform:uppercase; color:var(--muted); margin:24px 0 2px; }
+    .hint{ color:var(--muted); font-size:.8rem; margin:0 0 18px; }
+
+    /* ---- stage: tunable knobs live here as CSS variables ---- */
+    .wrap{
+      --speed:1; --glow:26px; --chroma:3px; --amp:16px; --scan-op:.22; --scan-gap:4px;
+      display:flex; align-items:center; justify-content:center;
+      width:min(420px,88vw); height:min(420px,88vw);
+      border-radius:18px; position:relative; overflow:hidden;
+      background:#000; border:1px solid var(--border);
+    }
+    .wrap.checker{
+      background:conic-gradient(#1b1b22 90deg,#101015 0 180deg,#1b1b22 0 270deg,#101015 0) 0 0/28px 28px;
+    }
+    .stage{ position:relative; width:74%; height:74%; }
+    .tab{ position:absolute; inset:0; width:100%; height:100%; object-fit:contain; pointer-events:none; }
+    .slice{ opacity:0; mix-blend-mode:screen; }
+    .block{ position:absolute; left:0; right:0; opacity:0; mix-blend-mode:screen; pointer-events:none; }
+    .b1{ top:16%; height:11%; } .b2{ top:46%; height:8%; } .b3{ top:70%; height:13%; }
+    .scanlines{
+      position:absolute; inset:0; z-index:6; pointer-events:none; opacity:0;
+      background:repeating-linear-gradient(0deg,
+        transparent, transparent calc(var(--scan-gap) - 2px),
+        rgba(0,0,0,var(--scan-op)) calc(var(--scan-gap) - 2px),
+        rgba(0,0,0,var(--scan-op)) var(--scan-gap));
+    }
+
+    /* ---- GLOW (blooms around the whole tab) ---- */
+    .wrap.glow .stage{ animation:glowPulse calc(2.6s / var(--speed)) ease-in-out infinite; }
+    @keyframes glowPulse{
+      0%,100%{ filter:drop-shadow(0 0 calc(var(--glow)*.35) rgba(138,102,255,.7)) drop-shadow(0 0 var(--glow) rgba(138,102,255,.4)); }
+      50%    { filter:drop-shadow(0 0 calc(var(--glow)*.6) rgba(154,120,255,.95)) drop-shadow(0 0 calc(var(--glow)*1.7) rgba(138,102,255,.65)); }
+    }
+
+    /* ---- CHROMATIC ABERRATION + jitter (offset driven by --chroma) ---- */
+    .wrap.chroma .base{ animation:chroma calc(2.2s / var(--speed)) steps(1,end) infinite; }
+    @keyframes chroma{
+      0%,100%{ transform:translate(0,0); filter:drop-shadow(var(--chroma) 0 0 rgba(255,71,87,.55)) drop-shadow(calc(-1*var(--chroma)) 0 0 rgba(0,217,255,.55)); }
+      8%   { transform:translate(calc(-1*var(--chroma)),1px); filter:hue-rotate(25deg) drop-shadow(calc(var(--chroma)*1.9) 0 0 rgba(255,71,87,.75)) drop-shadow(calc(var(--chroma)*-1.9) 0 0 rgba(0,217,255,.75)); }
+      8.6% { transform:translate(0,0); filter:drop-shadow(var(--chroma) 0 0 rgba(255,71,87,.55)) drop-shadow(calc(-1*var(--chroma)) 0 0 rgba(0,217,255,.55)); }
+      46%  { transform:translate(calc(var(--chroma)*1.3),0); filter:hue-rotate(-30deg) drop-shadow(calc(var(--chroma)*-2) 0 0 rgba(255,71,87,.75)) drop-shadow(calc(var(--chroma)*2) 0 0 rgba(0,217,255,.75)); }
+      46.7%{ transform:translate(0,0); filter:drop-shadow(var(--chroma) 0 0 rgba(255,71,87,.55)) drop-shadow(calc(-1*var(--chroma)) 0 0 rgba(0,217,255,.55)); }
+    }
+
+    /* ---- GLITCH SLICES: displaced bands (shift driven by --amp) ---- */
+    .wrap.glitch .slice{ opacity:1; }
+    .s1{ clip-path:inset(6% 0 68% 0);  animation:sliceA calc(2.7s / var(--speed)) steps(1,end) infinite; }
+    .s2{ clip-path:inset(40% 0 34% 0); animation:sliceB calc(3.3s / var(--speed)) steps(1,end) infinite; }
+    .s3{ clip-path:inset(72% 0 4% 0);  animation:sliceC calc(2.1s / var(--speed)) steps(1,end) infinite; }
+    @keyframes sliceA{
+      0%,100%{ transform:translateX(0); filter:none; }
+      12%{ transform:translateX(calc(-1*var(--amp))); filter:hue-rotate(40deg); }
+      12.8%{ transform:translateX(0); filter:none; }
+      55%{ transform:translateX(calc(var(--amp)*.7)); filter:hue-rotate(-30deg); }
+      55.7%{ transform:translateX(0); }
+    }
+    @keyframes sliceB{
+      0%,100%{ transform:translateX(0); }
+      30%{ transform:translateX(calc(var(--amp)*1.15)); filter:hue-rotate(-50deg); }
+      30.7%{ transform:translateX(0); filter:none; }
+      70%{ transform:translateX(calc(-1*var(--amp)*.8)); filter:hue-rotate(30deg); }
+      70.6%{ transform:translateX(0); filter:none; }
+    }
+    @keyframes sliceC{
+      0%,100%{ transform:translateX(0); }
+      20%{ transform:translateX(calc(-1.25*var(--amp))); filter:hue-rotate(60deg); }
+      20.6%{ transform:translateX(0); filter:none; }
+      80%{ transform:translateX(calc(var(--amp)*.5)); }
+      80.6%{ transform:translateX(0); }
+    }
+
+    /* ---- CRT SCANLINES ---- */
+    .wrap.scan .scanlines{ opacity:1; animation:scanFlicker .1s steps(2) infinite; }
+    @keyframes scanFlicker{ 0%,100%{opacity:1;} 50%{opacity:.9;} }
+
+    /* ---- CORRUPTION BLOCKS: random colored flashes ---- */
+    .wrap.blocks .b1{ animation:block1 calc(4s / var(--speed)) steps(1,end) infinite; }
+    .wrap.blocks .b2{ animation:block2 calc(5.5s / var(--speed)) steps(1,end) infinite; }
+    .wrap.blocks .b3{ animation:block3 calc(3.2s / var(--speed)) steps(1,end) infinite; }
+    @keyframes block1{
+      0%,90%,100%{ opacity:0; transform:translateX(0); }
+      91%{ opacity:.75; transform:translateX(-6px); background:var(--glitch-cyan); }
+      93%{ opacity:.55; transform:translateX(5px); background:var(--glitch-red); }
+      95%{ opacity:0; }
+    }
+    @keyframes block2{
+      0%,86%,100%{ opacity:0; transform:translateX(0); }
+      87%{ opacity:.7; transform:translateX(7px); background:var(--accent); }
+      89%{ opacity:.5; transform:translateX(-4px); background:var(--glitch-cyan); }
+      91%{ opacity:0; }
+    }
+    @keyframes block3{
+      0%,93%,100%{ opacity:0; transform:translateX(0); }
+      94%{ opacity:.7; transform:translateX(-8px); background:var(--glitch-red); }
+      96%{ opacity:.5; transform:translateX(4px); background:var(--accent); }
+      98%{ opacity:0; }
+    }
+
+    /* ---- controls ---- */
+    .panel{ display:flex; flex-wrap:wrap; gap:9px; justify-content:center; margin:20px 0 6px; max-width:480px; }
+    .toggle{
+      display:inline-flex; align-items:center; gap:8px; cursor:pointer; user-select:none;
+      background:var(--bg-elev); border:1px solid var(--border); border-radius:999px;
+      padding:8px 14px; font-size:.82rem; font-weight:600; color:var(--muted);
+      transition:color .15s, border-color .15s, background .15s;
+    }
+    .toggle:hover{ color:#fff; border-color:var(--accent); }
+    .toggle input{ accent-color:var(--accent); width:15px; height:15px; }
+    .toggle.on{ color:#fff; border-color:var(--accent); background:#1c1930; }
+
+    .sliders{
+      display:grid; grid-template-columns:1fr 1fr; gap:12px 22px;
+      width:min(480px,88vw); margin:14px 0 4px; padding:16px 18px;
+      background:var(--bg-elev); border:1px solid var(--border); border-radius:14px;
+    }
+    .slider{ display:flex; flex-direction:column; gap:5px; }
+    .slider label{ font-size:.74rem; color:var(--muted); display:flex; justify-content:space-between; }
+    .slider label b{ color:#cdbcff; font-weight:600; font-variant-numeric:tabular-nums; }
+    .slider input[type=range]{ width:100%; accent-color:var(--accent); }
+
+    .row2{ display:flex; gap:9px; align-items:center; margin-top:12px; flex-wrap:wrap; justify-content:center; }
+    .row2 button{
+      background:var(--bg-elev); border:1px solid var(--border); color:var(--ink);
+      border-radius:9px; padding:8px 14px; cursor:pointer; font-weight:600; font-size:.8rem;
+    }
+    .row2 button:hover{ border-color:var(--accent); }
+    footer{ color:var(--muted); font-size:.72rem; margin:22px 16px 30px; text-align:center; max-width:520px; }
+    a{ color:#bcb6e6; }
+  </style>
+</head>
+<body>
+  <h1>Zoid Glitch Lab</h1>
+  <p class="hint">Toggle effects, then tune them with the sliders. Nothing here touches the live site.</p>
+
+  <div class="wrap" id="wrap">
+    <div class="stage" id="stage">
+      <img class="tab base" src="../zoid.webp" alt="" />
+      <img class="tab slice s1" src="../zoid.webp" alt="" />
+      <img class="tab slice s2" src="../zoid.webp" alt="" />
+      <img class="tab slice s3" src="../zoid.webp" alt="" />
+      <div class="block b1"></div>
+      <div class="block b2"></div>
+      <div class="block b3"></div>
+    </div>
+    <div class="scanlines"></div>
+  </div>
+
+  <div class="panel" id="panel">
+    <label class="toggle"><input type="checkbox" data-fx="glow" /> Glow</label>
+    <label class="toggle"><input type="checkbox" data-fx="chroma" /> Chromatic split</label>
+    <label class="toggle"><input type="checkbox" data-fx="glitch" /> Glitch slices</label>
+    <label class="toggle"><input type="checkbox" data-fx="scan" /> CRT scanlines</label>
+    <label class="toggle"><input type="checkbox" data-fx="blocks" /> Corruption blocks</label>
+  </div>
+
+  <div class="sliders" id="sliders">
+    <div class="slider"><label>Speed <b id="v-speed">1.00×</b></label><input type="range" data-var="--speed" data-unit="" data-fmt="x" min="0.25" max="3" step="0.05" value="1"></div>
+    <div class="slider"><label>Glow size <b id="v-glow">26px</b></label><input type="range" data-var="--glow" data-unit="px" min="0" max="60" step="1" value="26"></div>
+    <div class="slider"><label>Chromatic offset <b id="v-chroma">3px</b></label><input type="range" data-var="--chroma" data-unit="px" min="0" max="12" step="0.5" value="3"></div>
+    <div class="slider"><label>Slice shift <b id="v-amp">16px</b></label><input type="range" data-var="--amp" data-unit="px" min="0" max="44" step="1" value="16"></div>
+    <div class="slider"><label>Scanline strength <b id="v-scan-op">0.22</b></label><input type="range" data-var="--scan-op" data-unit="" min="0" max="0.6" step="0.02" value="0.22"></div>
+    <div class="slider"><label>Scanline gap <b id="v-scan-gap">4px</b></label><input type="range" data-var="--scan-gap" data-unit="px" min="2" max="10" step="1" value="4"></div>
+  </div>
+
+  <div class="row2">
+    <button id="allBtn" type="button">Full chaos</button>
+    <button id="noneBtn" type="button">Reset FX</button>
+    <button id="bgBtn" type="button">Toggle backdrop</button>
+    <button id="dumpBtn" type="button">Copy settings</button>
+  </div>
+
+  <footer id="foot">
+    Techniques from <a href="https://muffinman.io/blog/css-image-glitch/" target="_blank" rel="noopener">muffinman.io</a>
+    and <a href="https://deloughry.co.uk/field-notes/building-glitch-effects-with-css/" target="_blank" rel="noopener">deloughry.co.uk</a>.
+    When you land on a combo you like, hit “Copy settings” and I’ll bake it into a hero version.
+  </footer>
+
+  <script>
+    const wrap = document.getElementById("wrap");
+    const boxes = [...document.querySelectorAll('#panel input[data-fx]')];
+    const sliders = [...document.querySelectorAll('#sliders input[data-var]')];
+
+    function syncFx(){
+      boxes.forEach(b => {
+        wrap.classList.toggle(b.dataset.fx, b.checked);
+        b.closest(".toggle").classList.toggle("on", b.checked);
+      });
+    }
+    function fmt(s){
+      const v = s.value, u = s.dataset.unit || "";
+      if (s.dataset.fmt === "x") return parseFloat(v).toFixed(2) + "×";
+      return v + u;
+    }
+    function applySlider(s){
+      wrap.style.setProperty(s.dataset.var, s.value + (s.dataset.unit || ""));
+      const out = document.getElementById("v-" + s.dataset.var.replace("--",""));
+      if (out) out.textContent = fmt(s);
+    }
+
+    boxes.forEach(b => b.addEventListener("change", syncFx));
+    sliders.forEach(s => { s.addEventListener("input", () => applySlider(s)); applySlider(s); });
+
+    document.getElementById("allBtn").addEventListener("click", () => { boxes.forEach(b=>b.checked=true); syncFx(); });
+    document.getElementById("noneBtn").addEventListener("click", () => { boxes.forEach(b=>b.checked=false); syncFx(); });
+    document.getElementById("bgBtn").addEventListener("click", () => wrap.classList.toggle("checker"));
+    document.getElementById("dumpBtn").addEventListener("click", () => {
+      const fx = boxes.filter(b=>b.checked).map(b=>b.dataset.fx);
+      const vars = {}; sliders.forEach(s => vars[s.dataset.var] = s.value + (s.dataset.unit||""));
+      const txt = "effects: " + (fx.join(", ") || "none") + "\n" +
+        Object.entries(vars).map(([k,v]) => k + ": " + v).join("\n");
+      navigator.clipboard?.writeText(txt);
+      const f = document.getElementById("foot");
+      const old = f.innerHTML; f.textContent = "Copied to clipboard — paste it to me:\n\n" + txt;
+      f.style.whiteSpace = "pre-wrap";
+      setTimeout(() => { f.innerHTML = old; f.style.whiteSpace = ""; }, 4000);
+    });
+  </script>
+</body>
+</html>

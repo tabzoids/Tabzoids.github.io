@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Your Tabs — Tabzoid</title>
+
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+
+  <link rel="preload" href="../fonts/Opsilon-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    @font-face{
+      font-family:"Opsilon";
+      src:url("../fonts/Opsilon-Regular.woff2") format("woff2");
+      font-weight:400; font-style:normal; font-display:swap;
+    }
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e; --danger:#ff6b6b; --ok:#57d38c;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0; padding:0;}
+    body{
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(138,102,255,.14), transparent 60%),
+        var(--bg);
+      color:var(--ink); font-family:var(--body); min-height:100vh;
+      -webkit-font-smoothing:antialiased;
+    }
+    /* hide everything until auth is resolved to avoid a flash */
+    body.loading .app{ display:none; }
+
+    header.topnav{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      padding:16px 22px; border-bottom:1px solid var(--border);
+      position:sticky; top:0; background:rgba(14,14,18,.85); backdrop-filter:blur(6px); z-index:10;
+    }
+    .brand{ font-family:"Opsilon",var(--body); font-size:1.25rem; color:#eae9f4; text-decoration:none; }
+    .nav{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .nav a, .nav button{
+      font-family:var(--body); font-size:.85rem; font-weight:600; color:var(--muted);
+      background:transparent; border:1px solid transparent; border-radius:9px; padding:8px 12px;
+      cursor:pointer; text-decoration:none; transition:color .15s, background .15s, border-color .15s;
+    }
+    .nav a:hover, .nav button:hover{ color:#fff; background:var(--bg-elev); border-color:var(--border); }
+    .nav a.active{ color:#fff; background:#1c1930; border-color:var(--accent); }
+
+    main{ max-width:820px; margin:0 auto; padding:32px 22px 64px; }
+    h1{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.9rem; margin:0 0 4px; }
+    .sub{ color:var(--muted); margin:0 0 26px; font-size:.95rem; }
+    .sub b{ color:#cdbcff; }
+
+    .card{
+      background:var(--bg-elev); border:1px solid var(--border); border-radius:14px;
+      padding:20px; margin-bottom:24px;
+    }
+    .card h2{ font-size:.78rem; letter-spacing:.12em; text-transform:uppercase; color:var(--muted); margin:0 0 14px; }
+    label{ display:block; font-size:.8rem; color:var(--muted); margin:0 0 5px; }
+    input, textarea{
+      width:100%; padding:11px 12px; margin-bottom:12px; border-radius:9px;
+      border:1px solid var(--border); background:#0f0f15; color:var(--ink); font-size:.95rem; font-family:var(--body);
+    }
+    input:focus, textarea:focus{ outline:none; border-color:var(--accent); }
+    button.primary{
+      appearance:none; cursor:pointer; font-weight:600; font-family:var(--body);
+      padding:11px 18px; border-radius:10px; font-size:.95rem;
+      color:#fff; background:var(--accent-dark); border:1px solid var(--accent); transition:background .15s;
+    }
+    button.primary:hover{ background:var(--accent); }
+    button.primary:disabled{ opacity:.55; cursor:not-allowed; }
+    .msg{ font-size:.85rem; margin-top:8px; min-height:1.1em; }
+    .msg.err{ color:var(--danger); } .msg.ok{ color:var(--ok); }
+
+    .finds{ list-style:none; margin:0; padding:0; display:grid; gap:12px; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); }
+    .find{
+      background:var(--bg-elev); border:1px solid var(--border); border-radius:12px; padding:14px 16px;
+      display:flex; flex-direction:column; gap:6px; position:relative;
+    }
+    .find .brand{ font-weight:700; color:#dcd6ff; font-size:1.05rem; }
+    .find .note{ color:var(--ink); font-size:.9rem; }
+    .find .date{ color:var(--muted); font-size:.75rem; margin-top:4px; }
+    .find .del{
+      position:absolute; top:10px; right:10px; background:transparent; border:none; color:var(--muted);
+      cursor:pointer; font-size:1rem; line-height:1; padding:2px 5px; border-radius:6px;
+    }
+    .find .del:hover{ color:var(--danger); background:#0f0f15; }
+    .empty{ color:var(--muted); font-size:.92rem; padding:8px 2px; }
+    .pill{ display:inline-block; font-size:.7rem; padding:3px 9px; border-radius:999px; background:#0f0f15; border:1px solid var(--border); color:var(--muted); }
+  </style>
+</head>
+<body class="loading">
+  <div class="app">
+    <header class="topnav">
+      <a class="brand" href="/">Tabzoid</a>
+      <nav class="nav">
+        <a href="/tabs" class="active">Tabs</a>
+        <a href="/profile">Profile</a>
+        <button id="logoutBtn" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Your Tab Finds</h1>
+      <p class="sub">Signed in as <b id="whoami"></b> <span class="pill">RLS-protected</span></p>
+
+      <div class="card">
+        <h2>Log a new find</h2>
+        <label for="brand">Brand</label>
+        <input id="brand" type="text" placeholder="e.g. Jolt Cola" maxlength="120" />
+        <label for="note">Note (optional)</label>
+        <input id="note" type="text" placeholder="e.g. found in a 1987 time capsule" maxlength="240" />
+        <button id="addBtn" class="primary" type="button">Log this find</button>
+        <div id="addMsg" class="msg"></div>
+      </div>
+
+      <ul id="findsList" class="finds"></ul>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = (id) => document.getElementById(id);
+    function setMsg(el, t, k){ el.className = "msg" + (k ? " " + k : ""); el.textContent = t || ""; }
+
+    // ---- auth guard: must be logged in ----
+    async function guard(){
+      const { data:{ session } } = await sb.auth.getSession();
+      if (!session){ window.location.replace("/"); return null; }
+      $("whoami").textContent = session.user.email;
+      document.body.classList.remove("loading");
+      return session;
+    }
+
+    // ---- finds CRUD ----
+    async function loadFinds(){
+      const { data, error } = await sb.from("tab_finds")
+        .select("id, brand, note, found_at")
+        .order("found_at", { ascending:false });
+      const list = $("findsList");
+      if (error){ list.innerHTML = '<li class="empty">Could not load finds: ' + error.message + '</li>'; return; }
+      list.innerHTML = "";
+      if (!data.length){ list.innerHTML = '<li class="empty">No finds logged yet — add your first one above.</li>'; return; }
+      for (const f of data){
+        const li = document.createElement("li");
+        li.className = "find";
+        const d = new Date(f.found_at).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+        li.innerHTML =
+          '<button class="del" title="Delete" aria-label="Delete find">&times;</button>' +
+          '<span class="brand"></span>' +
+          '<span class="note"></span>' +
+          '<span class="date"></span>';
+        li.querySelector(".brand").textContent = f.brand;
+        li.querySelector(".note").textContent = f.note || "";
+        li.querySelector(".date").textContent = "Logged " + d;
+        li.querySelector(".del").addEventListener("click", () => removeFind(f.id));
+        list.appendChild(li);
+      }
+    }
+
+    async function addFind(){
+      const brand = $("brand").value.trim(), note = $("note").value.trim();
+      if (!brand){ setMsg($("addMsg"), "Enter a brand first.", "err"); return; }
+      $("addBtn").disabled = true; setMsg($("addMsg"), "Saving…");
+      const { error } = await sb.from("tab_finds").insert({ brand, note: note || null });
+      $("addBtn").disabled = false;
+      if (error){ setMsg($("addMsg"), error.message, "err"); return; }
+      $("brand").value = ""; $("note").value = "";
+      setMsg($("addMsg"), "Saved.", "ok");
+      loadFinds();
+    }
+
+    async function removeFind(id){
+      const { error } = await sb.from("tab_finds").delete().eq("id", id);
+      if (error){ setMsg($("addMsg"), error.message, "err"); return; }
+      loadFinds();
+    }
+
+    $("addBtn").addEventListener("click", addFind);
+    $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
+    sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
+
+    (async () => { const s = await guard(); if (s) loadFinds(); })();
+  </script>
+</body>
+</html>

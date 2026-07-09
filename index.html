@@ -74,15 +74,14 @@
       display:flex; align-items:center; gap:10px;
     }
     .login-btn{
-      display:inline-flex; align-items:center; gap:8px;
-      font-family:var(--body); font-size:.85rem; font-weight:600;
+      display:inline-flex; align-items:center; justify-content:center;
+      width:42px; height:42px; padding:0; border-radius:50%;
       color:var(--ink); background:var(--bg-elev); border:1px solid var(--border);
-      padding:8px 14px; border-radius:999px; cursor:pointer;
+      cursor:pointer;
       transition:color .15s ease, border-color .15s ease, background .15s ease, transform .15s ease;
     }
     .login-btn:hover{ color:#fff; border-color:var(--accent); background:#1c1930; transform:translateY(-1px); }
-    .login-btn svg{ width:16px; height:16px; }
-    .login-btn .email{ max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .login-btn svg{ width:18px; height:18px; }
     @media (hover:none){ .login-btn:hover{ transform:none; } }
 
     /* modal */
@@ -94,17 +93,18 @@
     }
     .modal-overlay.open{ display:flex; }
     .modal{
-      width:100%; max-width:380px; text-align:left;
+      width:100%; max-width:380px; text-align:left; position:relative;
       background:var(--bg-elev); border:1px solid var(--border); border-radius:16px;
       padding:24px 22px 22px;
       box-shadow:0 24px 60px rgba(0,0,0,.5);
       animation:pop .16s ease;
     }
     @keyframes pop{ from{ opacity:0; transform:translateY(8px) scale(.98); } to{ opacity:1; transform:none; } }
-    .modal-head{ display:flex; align-items:flex-start; justify-content:space-between; gap:12px; margin-bottom:16px; }
+    .modal-head{ text-align:center; margin-bottom:18px; }
     .modal-head h2{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.5rem; margin:0; color:#eae9f4; }
-    .modal-head p{ margin:4px 0 0; color:var(--muted); font-size:.85rem; }
+    .modal-head p{ margin:6px 0 0; color:var(--muted); font-family:"TOOM",var(--body); font-size:.92rem; letter-spacing:.03em; }
     .modal-close{
+      position:absolute; top:14px; right:16px;
       appearance:none; border:none; background:transparent; color:var(--muted);
       font-size:1.4rem; line-height:1; cursor:pointer; padding:2px 4px; border-radius:8px;
     }
@@ -145,11 +145,16 @@
       background:var(--bg-elev); border:1px solid var(--border);
       padding:7px 14px; border-radius:999px;
     }
-    .badge .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px rgba(138,102,255,.18); }
+    .badge .dot{ width:7px; height:7px; border-radius:50%; background:var(--accent); box-shadow:0 0 0 4px rgba(138,102,255,.18); animation:dotPulse 2.4s ease-in-out infinite; }
+    @keyframes dotPulse{
+      0%,100%{ opacity:.55; box-shadow:0 0 0 3px rgba(138,102,255,.12); }
+      50%    { opacity:1;   box-shadow:0 0 0 6px rgba(138,102,255,.26); }
+    }
+    @media (prefers-reduced-motion:reduce){ .badge .dot{ animation:none; } }
 
     .slogan{
       font-family:"Opsilon",var(--body); font-weight:400;
-      font-size:clamp(1.5rem,4.4vw,2.5rem); line-height:1.12; margin:0; color:#eae9f4;
+      font-size:clamp(1.35rem,3.9vw,2.2rem); line-height:1.12; margin:0; color:#4f00c1;
     }
     .intro{
       color:var(--muted); font-size:clamp(1rem,2vw,1.16rem); line-height:1.6;
@@ -157,27 +162,35 @@
     }
 
     .signup{
-      width:100%; max-width:440px; margin:2px 0 4px;
+      width:100%; max-width:520px; margin:6px 0;
+      background:var(--bg-elev); border:1px solid var(--border); border-radius:16px;
+      padding:16px 26px 14px;
+      box-shadow:0 0 0 1px rgba(138,102,255,.06), 0 14px 34px rgba(0,0,0,.35);
+    }
+    .signup-cta{
+      margin:0 0 10px; font-family:"TOOM",var(--body);
+      font-size:1.4rem; letter-spacing:.04em; color:#c7c6d4;
     }
     .signup form{
-      display:flex; gap:9px; flex-wrap:wrap; justify-content:center;
+      display:flex; gap:9px; align-items:stretch;
     }
     .signup input[type="email"]{
-      flex:1 1 220px; min-width:0;
+      flex:1 1 auto; min-width:0;
       padding:12px 14px; border-radius:11px;
-      border:1px solid var(--border); background:var(--bg-elev); color:var(--ink);
+      border:1px solid var(--border); background:#0f0f15; color:var(--ink);
       font-size:1rem; font-family:var(--body);
     }
     .signup input[type="email"]::placeholder{ color:#6f6f80; }
     .signup input[type="email"]:focus{ outline:none; border-color:var(--accent); }
     .signup button{
       flex:0 0 auto; appearance:none; cursor:pointer; font-weight:600;
-      padding:12px 20px; border-radius:11px; font-size:1rem;
+      padding:12px 24px; border-radius:11px; font-size:1rem;
       color:#fff; background:var(--accent-dark); border:1px solid var(--accent);
       font-family:var(--body);
-      transition:background .15s ease, transform .15s ease;
+      box-shadow:0 0 20px rgba(138,102,255,.4);
+      transition:background .15s ease, transform .15s ease, box-shadow .15s ease;
     }
-    .signup button:hover{ background:var(--accent); }
+    .signup button:hover{ background:var(--accent); box-shadow:0 0 28px rgba(138,102,255,.6); }
     .signup button:active{ transform:translateY(1px); }
     .signup button:disabled{ opacity:.55; cursor:not-allowed; }
     .signup .note{
@@ -195,6 +208,23 @@
       width:44px; height:44px; border-radius:12px;
       color:var(--muted); background:var(--bg-elev); border:1px solid var(--border);
       transition:color .15s ease, border-color .15s ease, transform .15s ease, background .15s ease;
+      position:relative; overflow:hidden;
+    }
+    .social::after{
+      content:""; position:absolute; inset:0; pointer-events:none; opacity:0;
+      transform:translateX(-140%) skewX(-18deg);
+      background:linear-gradient(90deg, transparent 0%, rgba(154,120,255,.26) 50%, transparent 100%);
+    }
+    .social.shimmer::after,
+    .social:hover::after{ animation:shimmerPass .85s ease-in-out; }
+    @keyframes shimmerPass{
+      0%{ transform:translateX(-140%) skewX(-18deg); opacity:0; }
+      12%{ opacity:1; }
+      88%{ opacity:1; }
+      100%{ transform:translateX(140%) skewX(-18deg); opacity:0; }
+    }
+    @media (prefers-reduced-motion:reduce){
+      .social.shimmer::after, .social:hover::after{ animation:none; }
     }
     .social svg{ width:20px; height:20px; }
     .social:hover{ color:#fff; border-color:var(--accent); background:#1c1930; transform:translateY(-2px); }
@@ -211,9 +241,8 @@
 </head>
 <body>
   <div class="topbar">
-    <button id="loginBtn" class="login-btn" type="button" aria-haspopup="dialog">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg>
-      <span id="loginBtnLabel">Log in</span>
+    <button id="loginBtn" class="login-btn" type="button" aria-haspopup="dialog" aria-label="Log in" title="Log in">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
     </button>
   </div>
 
@@ -221,35 +250,35 @@
     <div class="modal">
       <div class="modal-head">
         <div>
-          <h2 id="loginTitle">Welcome back</h2>
-          <p>Log in to your Tabzoid account.</p>
+          <h2 id="loginTitle">TABMIN ONLY</h2>
+          <p>come back soon to make an account.</p>
         </div>
         <button id="modalClose" class="modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <form id="loginForm" novalidate>
-        <label for="loginEmail">Email</label>
-        <input id="loginEmail" type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
-        <label for="loginPass">Password</label>
-        <input id="loginPass" type="password" name="password" placeholder="Your password" autocomplete="current-password" required />
+        <input id="loginEmail" type="email" name="email" placeholder="User" aria-label="User" autocomplete="email" required />
+        <input id="loginPass" type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required />
         <button id="loginSubmit" class="login-submit" type="submit">Log in</button>
       </form>
-      <p class="note" id="loginNote" role="status" aria-live="polite">Accounts are in early testing.</p>
+      <p class="note" id="loginNote" role="status" aria-live="polite"></p>
     </div>
   </div>
 
   <main>
     <span class="badge"><span class="dot"></span>Compendium in progress</span>
     <img class="logo" src="tabzoid-dark.webp" alt="Tabzoid" width="765" height="171">
-    <h1 class="slogan">The Global Compendium<br>of Collected Can Tabs</h1>
-    <p class="intro">A playful, ever-growing archive of the humble can tab — collected, cataloged, and celebrated by tabists the world over. We're building it now. Follow along.</p>
+    <h1 class="slogan">A Global Compendium of Tabs</h1>
+    <p class="intro">Every tab has its place and we're making room for them all<br>
+    One tab at a time our collection is growing.</p>
 
     <div class="signup">
+      <p class="signup-cta">Subscribe to keep tabs on us</p>
       <form id="signupForm" novalidate>
         <label for="signupEmail" class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);">Email address</label>
         <input id="signupEmail" type="email" name="email" placeholder="you@example.com" autocomplete="email" required />
-        <button id="signupBtn" type="submit">Notify me</button>
+        <button id="signupBtn" type="submit">Subscribe</button>
       </form>
-      <p class="note" id="signupNote" role="status" aria-live="polite">Keep Tabs on Us. No Ads, Just Tabs!</p>
+      <p class="note" id="signupNote" role="status" aria-live="polite">No Ads, Just Tabs!</p>
     </div>
 
     <nav class="socials" aria-label="Tabzoid on social media">
@@ -285,6 +314,82 @@
   </footer>
 
   <script>document.getElementById("yr").textContent = new Date().getFullYear();</script>
+
+  <!-- Intermittent shimmer across one social icon at a time -->
+  <script>
+    (function () {
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      const icons = Array.from(document.querySelectorAll(".socials .social"));
+      if (!icons.length) return;
+
+      function shimmerOnce() {
+        const el = icons[Math.floor(Math.random() * icons.length)];
+        el.classList.add("shimmer");
+        setTimeout(() => el.classList.remove("shimmer"), 900);
+        schedule();
+      }
+      function schedule() {
+        // random gap so it feels organic, one at a time
+        setTimeout(shimmerOnce, 1800 + Math.random() * 4200);
+      }
+      schedule();
+    })();
+  </script>
+
+  <!-- Typewriter placeholder for the email field -->
+  <script>
+    (function () {
+      const input = document.getElementById("signupEmail");
+      if (!input) return;
+
+      // Reduced-motion: skip animation, show a clean static hint.
+      if (window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches) {
+        input.setAttribute("placeholder", "Add your email here");
+        return;
+      }
+
+      const phrases = [
+        "you@example.com",
+        "your best email…",
+        "join the archive…",
+        "keep tabs with us…"
+      ];
+      let p = 0, i = 0, deleting = false, base = "", caretOn = true;
+
+      // Only animate while the field is empty and not focused.
+      const active = () => document.activeElement !== input && !input.value;
+
+      function render() {
+        if (!active()) return;
+        input.setAttribute("placeholder", base + (caretOn ? "|" : ""));
+      }
+
+      // Blinking caret, independent of typing speed.
+      setInterval(() => { caretOn = !caretOn; render(); }, 500);
+
+      function tick() {
+        let delay = deleting ? 40 : 80;
+        if (active()) {
+          const full = phrases[p];
+          if (!deleting) {
+            i++; base = full.slice(0, i);
+            if (i >= full.length) { deleting = true; delay = 1700; }
+          } else {
+            i--; base = full.slice(0, i);
+            if (i <= 0) { deleting = false; p = (p + 1) % phrases.length; delay = 350; }
+          }
+          render();
+        }
+        setTimeout(tick, delay);
+      }
+
+      // While typing, show a plain format hint; resume the show on blur.
+      input.addEventListener("focus", () => input.setAttribute("placeholder", "enter your email"));
+      input.addEventListener("blur", () => { if (!input.value) { base = ""; i = 0; deleting = false; } });
+
+      tick();
+    })();
+  </script>
 
   <!-- Supabase: shared client for waitlist + login -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -342,7 +447,6 @@
     // ---- Login modal ----
     (function () {
       const loginBtn = document.getElementById("loginBtn");
-      const loginBtnLabel = document.getElementById("loginBtnLabel");
       const modal = document.getElementById("loginModal");
       const closeBtn = document.getElementById("modalClose");
       const form = document.getElementById("loginForm");
@@ -359,16 +463,16 @@
       }
 
       function openModal() {
-        setNote("Accounts are in early testing.");
+        setNote("");
         modal.classList.add("open");
         setTimeout(() => emailEl.focus(), 40);
       }
       function closeModal() { modal.classList.remove("open"); }
 
-      // Button either opens the login modal or logs out, depending on state.
-      loginBtn.addEventListener("click", async () => {
+      // Signed in → go to your tabs; signed out → open the login modal.
+      loginBtn.addEventListener("click", () => {
         if (signedIn) {
-          await sb.auth.signOut();
+          window.location.href = "/tabs";
         } else {
           openModal();
         }
@@ -398,21 +502,21 @@
           return;
         }
 
-        setNote("Logged in!", "ok");
+        setNote("Logged in — taking you to your tabs…", "ok");
         passEl.value = "";
-        submit.disabled = false;
-        setTimeout(closeModal, 600);
+        // On success, send them to their gallery.
+        window.location.href = "/tabs";
       });
 
       // Reflect auth state in the top-right button.
       function renderAuth(session) {
         signedIn = !!session;
         if (session) {
-          loginBtnLabel.textContent = "Log out";
-          loginBtn.title = "Signed in as " + session.user.email;
+          loginBtn.setAttribute("aria-label", "My Tabs");
+          loginBtn.title = "Signed in as " + session.user.email + " — view your tabs";
         } else {
-          loginBtnLabel.textContent = "Log in";
-          loginBtn.removeAttribute("title");
+          loginBtn.setAttribute("aria-label", "Log in");
+          loginBtn.title = "Log in";
         }
       }
 

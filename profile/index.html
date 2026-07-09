@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Your Profile — Tabzoid</title>
+
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+
+  <link rel="preload" href="../fonts/Opsilon-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    @font-face{
+      font-family:"Opsilon";
+      src:url("../fonts/Opsilon-Regular.woff2") format("woff2");
+      font-weight:400; font-style:normal; font-display:swap;
+    }
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e; --danger:#ff6b6b; --ok:#57d38c;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0; padding:0;}
+    body{
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(138,102,255,.14), transparent 60%),
+        var(--bg);
+      color:var(--ink); font-family:var(--body); min-height:100vh; -webkit-font-smoothing:antialiased;
+    }
+    body.loading .app{ display:none; }
+
+    header.topnav{
+      display:flex; align-items:center; justify-content:space-between; gap:16px;
+      padding:16px 22px; border-bottom:1px solid var(--border);
+      position:sticky; top:0; background:rgba(14,14,18,.85); backdrop-filter:blur(6px); z-index:10;
+    }
+    .brand{ font-family:"Opsilon",var(--body); font-size:1.25rem; color:#eae9f4; text-decoration:none; }
+    .nav{ display:flex; align-items:center; gap:6px; flex-wrap:wrap; }
+    .nav a, .nav button{
+      font-family:var(--body); font-size:.85rem; font-weight:600; color:var(--muted);
+      background:transparent; border:1px solid transparent; border-radius:9px; padding:8px 12px;
+      cursor:pointer; text-decoration:none; transition:color .15s, background .15s, border-color .15s;
+    }
+    .nav a:hover, .nav button:hover{ color:#fff; background:var(--bg-elev); border-color:var(--border); }
+    .nav a.active{ color:#fff; background:#1c1930; border-color:var(--accent); }
+
+    main{ max-width:620px; margin:0 auto; padding:32px 22px 64px; }
+    h1{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.9rem; margin:0 0 4px; }
+    .sub{ color:var(--muted); margin:0 0 26px; font-size:.95rem; }
+    .sub b{ color:#cdbcff; }
+
+    .card{ background:var(--bg-elev); border:1px solid var(--border); border-radius:14px; padding:22px; }
+    label{ display:block; font-size:.8rem; color:var(--muted); margin:0 0 5px; }
+    .hint{ font-size:.72rem; color:#6f6f80; margin:-6px 0 12px; }
+    input, textarea{
+      width:100%; padding:11px 12px; margin-bottom:14px; border-radius:9px;
+      border:1px solid var(--border); background:#0f0f15; color:var(--ink); font-size:.95rem; font-family:var(--body);
+    }
+    textarea{ min-height:90px; resize:vertical; }
+    input:focus, textarea:focus{ outline:none; border-color:var(--accent); }
+    button.primary{
+      appearance:none; cursor:pointer; font-weight:600; font-family:var(--body);
+      padding:11px 20px; border-radius:10px; font-size:.95rem;
+      color:#fff; background:var(--accent-dark); border:1px solid var(--accent); transition:background .15s;
+    }
+    button.primary:hover{ background:var(--accent); }
+    button.primary:disabled{ opacity:.55; cursor:not-allowed; }
+    .msg{ font-size:.85rem; margin-top:10px; min-height:1.1em; }
+    .msg.err{ color:var(--danger); } .msg.ok{ color:var(--ok); }
+    .idline{ color:var(--muted); font-size:.78rem; margin-top:16px; }
+  </style>
+</head>
+<body class="loading">
+  <div class="app">
+    <header class="topnav">
+      <a class="brand" href="/">Tabzoid</a>
+      <nav class="nav">
+        <a href="/tabs">Tabs</a>
+        <a href="/profile" class="active">Profile</a>
+        <button id="logoutBtn" type="button">Log out</button>
+      </nav>
+    </header>
+
+    <main>
+      <h1>Your Profile</h1>
+      <p class="sub">Your public tabist identity. Signed in as <b id="whoami"></b>.</p>
+
+      <div class="card">
+        <label for="username">Username</label>
+        <input id="username" type="text" placeholder="tabmaster" maxlength="40" autocomplete="off" />
+        <p class="hint">Must be unique. Lowercase letters, numbers, and underscores work best.</p>
+
+        <label for="display_name">Display name</label>
+        <input id="display_name" type="text" placeholder="Your name" maxlength="80" />
+
+        <label for="bio">Bio</label>
+        <textarea id="bio" placeholder="Collector of can tabs since…" maxlength="400"></textarea>
+
+        <button id="saveBtn" class="primary" type="button">Save profile</button>
+        <div id="msg" class="msg"></div>
+      </div>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = (id) => document.getElementById(id);
+    function setMsg(t, k){ const el = $("msg"); el.className = "msg" + (k ? " " + k : ""); el.textContent = t || ""; }
+
+    let userId = null;
+
+    async function guard(){
+      const { data:{ session } } = await sb.auth.getSession();
+      if (!session){ window.location.replace("/"); return null; }
+      userId = session.user.id;
+      $("whoami").textContent = session.user.email;
+      document.body.classList.remove("loading");
+      return session;
+    }
+
+    async function loadProfile(){
+      const { data, error } = await sb.from("profiles")
+        .select("username, display_name, bio").eq("id", userId).maybeSingle();
+      if (error){ setMsg(error.message, "err"); return; }
+      if (data){
+        $("username").value = data.username || "";
+        $("display_name").value = data.display_name || "";
+        $("bio").value = data.bio || "";
+      }
+    }
+
+    async function saveProfile(){
+      const username = $("username").value.trim();
+      const display_name = $("display_name").value.trim();
+      const bio = $("bio").value.trim();
+      $("saveBtn").disabled = true; setMsg("Saving…");
+      // update the row the signup trigger already created for this user
+      const { error } = await sb.from("profiles").update({
+        username: username || null,
+        display_name: display_name || null,
+        bio: bio || null,
+        updated_at: new Date().toISOString()
+      }).eq("id", userId);
+      $("saveBtn").disabled = false;
+      if (error){
+        if (error.code === "23505" || /duplicate/i.test(error.message)) setMsg("That username is taken — try another.", "err");
+        else setMsg(error.message, "err");
+        return;
+      }
+      setMsg("Profile saved.", "ok");
+    }
+
+    $("saveBtn").addEventListener("click", saveProfile);
+    $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
+    sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
+
+    (async () => { const s = await guard(); if (s) loadProfile(); })();
+  </script>
+</body>
+</html>

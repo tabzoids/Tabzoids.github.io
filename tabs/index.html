@@ -99,6 +99,7 @@
       <nav class="nav">
         <a href="/tabs" class="active">Tabs</a>
         <a href="/profile">Profile</a>
+        <a href="/admin" id="adminLink" style="display:none">Admin</a>
         <button id="logoutBtn" type="button">Log out</button>
       </nav>
     </header>
@@ -135,6 +136,8 @@
       if (!session){ window.location.replace("/"); return null; }
       $("whoami").textContent = session.user.email;
       document.body.classList.remove("loading");
+      sb.from("profiles").select("is_admin").eq("id", session.user.id).maybeSingle()
+        .then(({ data }) => { if (data && data.is_admin) { const l = document.getElementById("adminLink"); if (l) l.style.display = ""; } });
       return session;
     }
 

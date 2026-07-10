@@ -156,21 +156,6 @@
       font-family:"Opsilon",var(--body); font-weight:400;
       font-size:clamp(1.35rem,3.9vw,2.2rem); line-height:1.12; margin:0; color:#4f00c1;
     }
-    /* periodic shimmer pass across the tagline */
-    @supports ((-webkit-background-clip:text) or (background-clip:text)){
-      .slogan{
-        background:linear-gradient(100deg,#4f00c1 0%,#4f00c1 43%,#b389ff 50%,#4f00c1 57%,#4f00c1 100%);
-        background-size:220% 100%; background-position:150% 0;
-        -webkit-background-clip:text; background-clip:text;
-        -webkit-text-fill-color:transparent; color:transparent;
-        animation:sloganShimmer 6s ease-in-out infinite;
-      }
-    }
-    @keyframes sloganShimmer{
-      0%{ background-position:150% 0; }
-      16%,100%{ background-position:-50% 0; }
-    }
-    @media (prefers-reduced-motion:reduce){ .slogan{ animation:none; } }
     .intro{
       color:var(--muted); font-size:clamp(1rem,2vw,1.16rem); line-height:1.6;
       max-width:46ch; margin:0;
@@ -364,11 +349,12 @@
       }
 
       const phrases = [
-        "you@example.com",
-        "your best email…",
-        "join the archive…",
-        "keep tabs with us…",
-        "No Ads, Just Tabs!"
+        "Got tabs?",
+        "Your e-mail goes here.",
+        "Keep tabs on us.",
+        "Join the wait-list.",
+        "No ads, just tabs.",
+        "We're just getting started."
       ];
       let p = 0, i = 0, deleting = false, base = "", caretOn = true;
 

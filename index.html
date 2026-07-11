@@ -126,6 +126,12 @@
     .modal .note{ min-height:1.2em; margin:12px 2px 0; font-size:.84rem; color:var(--muted); }
     .modal .note.ok{ color:#57d38c; }
     .modal .note.err{ color:#ff6b6b; }
+    .modal .link-btn{
+      display:block; margin:12px auto 0; background:none; border:none; cursor:pointer;
+      color:#bcb6e6; font-size:.8rem; font-family:var(--body);
+    }
+    .modal .link-btn:hover{ text-decoration:underline; }
+    .modal .link-btn:disabled{ opacity:.55; cursor:not-allowed; }
 
     main{
       flex:1 0 auto;
@@ -260,6 +266,7 @@
         <input id="loginPass" type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required />
         <button id="loginSubmit" class="login-submit" type="submit">Log in</button>
       </form>
+      <button type="button" id="forgotBtn" class="link-btn">Forgot password?</button>
       <p class="note" id="loginNote" role="status" aria-live="polite"></p>
     </div>
   </div>
@@ -521,6 +528,19 @@
           loginBtn.title = "Log in";
         }
       }
+
+      // Forgot password → send a reset link to the /reset page
+      const forgotBtn = document.getElementById("forgotBtn");
+      forgotBtn.addEventListener("click", async () => {
+        const email = emailEl.value.trim();
+        if (!email || !emailEl.checkValidity()){ setNote("Enter your email above, then tap reset.", "err"); emailEl.focus(); return; }
+        forgotBtn.disabled = true;
+        setNote("Sending reset link…");
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset" });
+        forgotBtn.disabled = false;
+        if (error){ setNote(error.message, "err"); return; }
+        setNote("If that email has an account, a reset link is on its way.", "ok");
+      });
 
       sb.auth.onAuthStateChange((_event, session) => renderAuth(session));
       sb.auth.getSession().then(({ data }) => renderAuth(data.session));

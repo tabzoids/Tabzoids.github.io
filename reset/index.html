@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Reset Password — Tabzoid</title>
+
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="preload" href="../fonts/Opsilon-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    @font-face{ font-family:"Opsilon"; src:url("../fonts/Opsilon-Regular.woff2") format("woff2"); font-weight:400; font-display:swap; }
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e; --danger:#ff6b6b; --ok:#57d38c;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;}
+    body{
+      min-height:100vh; background:radial-gradient(1000px 600px at 50% -10%, rgba(138,102,255,.16), transparent 60%), var(--bg);
+      color:var(--ink); font-family:var(--body); -webkit-font-smoothing:antialiased;
+      display:flex; align-items:center; justify-content:center; padding:24px;
+    }
+    .card{
+      width:100%; max-width:400px; background:var(--bg-elev); border:1px solid var(--border);
+      border-radius:16px; padding:26px 24px; box-shadow:0 24px 60px rgba(0,0,0,.5); text-align:center;
+    }
+    h1{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.6rem; margin:0 0 4px; color:#eae9f4; }
+    .sub{ color:var(--muted); font-size:.88rem; margin:0 0 20px; }
+    label{ display:block; text-align:left; font-size:.78rem; color:var(--muted); margin:0 0 5px; }
+    input{
+      width:100%; padding:11px 12px; margin-bottom:13px; border-radius:9px;
+      border:1px solid var(--border); background:#0f0f15; color:var(--ink); font-size:.95rem; font-family:var(--body);
+    }
+    input:focus{ outline:none; border-color:var(--accent); }
+    button.primary{
+      width:100%; appearance:none; cursor:pointer; font-weight:600; font-family:var(--body);
+      padding:12px 16px; border-radius:10px; font-size:.98rem;
+      color:#fff; background:var(--accent-dark); border:1px solid var(--accent); transition:background .15s;
+    }
+    button.primary:hover{ background:var(--accent); }
+    button.primary:disabled{ opacity:.55; cursor:not-allowed; }
+    .msg{ min-height:1.2em; margin-top:12px; font-size:.85rem; color:var(--muted); }
+    .msg.err{ color:var(--danger); } .msg.ok{ color:var(--ok); }
+    a.home{ color:#bcb6e6; text-decoration:none; font-size:.85rem; display:inline-block; margin-top:14px; }
+    a.home:hover{ text-decoration:underline; }
+    .hidden{ display:none; }
+    .spinner{ color:var(--muted); font-size:.9rem; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1>Reset password</h1>
+
+    <div id="loadingState">
+      <p class="spinner">Checking your reset link…</p>
+    </div>
+
+    <div id="formState" class="hidden">
+      <p class="sub">Choose a new password for your account.</p>
+      <label for="pass">New password</label>
+      <input id="pass" type="password" placeholder="At least 8 characters" autocomplete="new-password" />
+      <label for="pass2">Confirm password</label>
+      <input id="pass2" type="password" placeholder="Repeat it" autocomplete="new-password" />
+      <button id="saveBtn" class="primary" type="button">Update password</button>
+      <div id="msg" class="msg"></div>
+    </div>
+
+    <div id="invalidState" class="hidden">
+      <p class="sub">This reset link is invalid or has expired.</p>
+      <a class="home" href="/">← Back to Tabzoid — request a new one from the login</a>
+    </div>
+
+    <div id="doneState" class="hidden">
+      <p class="sub" style="color:var(--ok)">Password updated! You can log in with it now.</p>
+      <a class="home" href="/">← Back to Tabzoid</a>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = (id) => document.getElementById(id);
+    const show = (id) => { ["loadingState","formState","invalidState","doneState"].forEach(s => $(s).classList.toggle("hidden", s !== id)); };
+    function setMsg(t, k){ const el = $("msg"); el.className = "msg" + (k ? " " + k : ""); el.textContent = t || ""; }
+
+    let handled = false;
+    function ready(){ if (handled) return; handled = true; show("formState"); setTimeout(() => $("pass").focus(), 50); }
+    function invalid(){ if (handled) return; handled = true; show("invalidState"); }
+
+    // Supabase parses the recovery token from the URL and fires PASSWORD_RECOVERY.
+    sb.auth.onAuthStateChange((event, session) => {
+      if (event === "PASSWORD_RECOVERY" || (session && !handled)) ready();
+    });
+    // Fallback: after the hash is processed, check for a session.
+    setTimeout(async () => {
+      const { data:{ session } } = await sb.auth.getSession();
+      if (session) ready(); else invalid();
+    }, 1400);
+
+    $("saveBtn").addEventListener("click", async () => {
+      const p1 = $("pass").value, p2 = $("pass2").value;
+      if (p1.length < 8){ setMsg("Password must be at least 8 characters.", "err"); return; }
+      if (p1 !== p2){ setMsg("Passwords don't match.", "err"); return; }
+      $("saveBtn").disabled = true; setMsg("Updating…");
+      const { error } = await sb.auth.updateUser({ password: p1 });
+      if (error){ setMsg(error.message, "err"); $("saveBtn").disabled = false; return; }
+      await sb.auth.signOut();       // clear the recovery session; they log in fresh
+      show("doneState");
+    });
+  </script>
+</body>
+</html>

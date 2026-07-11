@@ -46,6 +46,9 @@
     }
     .nav a:hover, .nav button:hover{ color:#fff; background:var(--bg-elev); border-color:var(--border); }
     .nav a.active{ color:#fff; background:#1c1930; border-color:var(--accent); }
+    .nav-ava{ width:30px; height:30px; border-radius:50%; overflow:hidden; border:1px solid var(--border); background:#0f0f15; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; text-decoration:none; }
+    .nav-ava img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .nav-ava:hover{ border-color:var(--accent); }
 
     main{ max-width:620px; margin:0 auto; padding:32px 22px 64px; }
     h1{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.9rem; margin:0 0 4px; }
@@ -100,6 +103,7 @@
         <a href="/profile" class="active">Profile</a>
         <a href="/admin" id="adminLink" style="display:none">Admin</a>
         <button id="logoutBtn" type="button">Log out</button>
+        <a href="/profile" class="nav-ava" id="navAva" title="Your profile"><span>🥫</span></a>
       </nav>
     </header>
 
@@ -169,6 +173,13 @@
       }
     }
 
+    function setNavAva(url){
+      const el = document.getElementById("navAva");
+      if (!el) return;
+      if (url){ el.innerHTML = ""; const i = document.createElement("img"); i.src = url; i.alt = ""; el.appendChild(i); }
+      else { el.innerHTML = "<span>🥫</span>"; }
+    }
+
     function setAvatar(url){
       const av = $("avatar");
       if (url){
@@ -181,6 +192,7 @@
         av.innerHTML = "<span>🥫</span>";
         $("removeBtn").style.display = "none";
       }
+      setNavAva(url); // keep the nav thumbnail in sync
     }
 
     async function uploadAvatar(file){

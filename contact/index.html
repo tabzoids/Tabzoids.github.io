@@ -1,0 +1,120 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Contact — Tabzoid</title>
+
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="preload" href="../fonts/Opsilon-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    @font-face{ font-family:"Opsilon"; src:url("../fonts/Opsilon-Regular.woff2") format("woff2"); font-weight:400; font-display:swap; }
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e; --danger:#ff6b6b; --ok:#57d38c;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;}
+    html,body{margin:0;}
+    body{
+      min-height:100vh; background:radial-gradient(1000px 600px at 50% -10%, rgba(138,102,255,.16), transparent 60%), var(--bg);
+      color:var(--ink); font-family:var(--body); -webkit-font-smoothing:antialiased;
+      display:flex; align-items:center; justify-content:center; padding:28px 20px;
+    }
+    .card{
+      width:100%; max-width:460px; background:var(--bg-elev); border:1px solid var(--border);
+      border-radius:16px; padding:26px 24px; box-shadow:0 24px 60px rgba(0,0,0,.5);
+    }
+    h1{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.7rem; margin:0 0 4px; color:#eae9f4; text-align:center; }
+    .sub{ color:var(--muted); font-size:.9rem; margin:0 0 22px; text-align:center; }
+    label{ display:block; text-align:left; font-size:.78rem; color:var(--muted); margin:0 0 5px; }
+    input, textarea{
+      width:100%; padding:11px 12px; margin-bottom:14px; border-radius:9px;
+      border:1px solid var(--border); background:#0f0f15; color:var(--ink); font-size:.95rem; font-family:var(--body);
+    }
+    textarea{ min-height:120px; resize:vertical; }
+    input:focus, textarea:focus{ outline:none; border-color:var(--accent); }
+    button.primary{
+      width:100%; appearance:none; cursor:pointer; font-weight:600; font-family:var(--body);
+      padding:12px 16px; border-radius:10px; font-size:.98rem;
+      color:#fff; background:var(--accent-dark); border:1px solid var(--accent); transition:background .15s;
+    }
+    button.primary:hover{ background:var(--accent); }
+    button.primary:disabled{ opacity:.55; cursor:not-allowed; }
+    .msg{ min-height:1.2em; margin-top:12px; font-size:.85rem; color:var(--muted); text-align:center; }
+    .msg.err{ color:var(--danger); } .msg.ok{ color:var(--ok); }
+    a.home{ color:#bcb6e6; text-decoration:none; font-size:.85rem; display:block; text-align:center; margin-top:16px; }
+    a.home:hover{ text-decoration:underline; }
+    /* honeypot: hidden from humans, tempting to bots */
+    .hp{ position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden; }
+    .done h1{ margin-bottom:10px; }
+  </style>
+</head>
+<body>
+  <div class="card" id="card">
+    <h1>Get in touch</h1>
+    <p class="sub">Questions, tab tips, or just want to say hi? Send us a note.</p>
+
+    <form id="contactForm" novalidate>
+      <label for="name">Name (optional)</label>
+      <input id="name" type="text" maxlength="120" autocomplete="name" />
+
+      <label for="email">Email</label>
+      <input id="email" type="email" maxlength="200" placeholder="you@example.com" autocomplete="email" required />
+
+      <label for="message">Message</label>
+      <textarea id="message" maxlength="5000" placeholder="What's on your mind?" required></textarea>
+
+      <!-- honeypot -->
+      <div class="hp" aria-hidden="true">
+        <label for="website">Leave this empty</label>
+        <input id="website" type="text" tabindex="-1" autocomplete="off" />
+      </div>
+
+      <button id="sendBtn" class="primary" type="submit">Send message</button>
+      <div id="msg" class="msg"></div>
+    </form>
+
+    <a class="home" href="/">← Back to Tabzoid</a>
+  </div>
+
+  <script>
+    const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+    const FN_URL = SUPABASE_URL + "/functions/v1/contact";
+    const $ = (id) => document.getElementById(id);
+    function setMsg(t, k){ const el = $("msg"); el.className = "msg" + (k ? " " + k : ""); el.textContent = t || ""; }
+
+    $("contactForm").addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const name = $("name").value.trim();
+      const email = $("email").value.trim();
+      const message = $("message").value.trim();
+      const website = $("website").value.trim(); // honeypot
+      if (!email || !$("email").checkValidity()){ setMsg("Please enter a valid email.", "err"); return; }
+      if (!message){ setMsg("Please write a message.", "err"); return; }
+
+      $("sendBtn").disabled = true;
+      setMsg("Sending…");
+      try {
+        const res = await fetch(FN_URL, {
+          method: "POST",
+          headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
+          body: JSON.stringify({ name, email, message, website }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok || data.error){ setMsg(data.error || "Something went wrong. Please try again.", "err"); $("sendBtn").disabled = false; return; }
+        // success
+        $("card").classList.add("done");
+        $("card").innerHTML = '<h1>Thanks!</h1><p class="sub">Your message is on its way — we\'ll get back to you soon.</p><a class="home" href="/">← Back to Tabzoid</a>';
+      } catch {
+        setMsg("Network error. Please try again.", "err");
+        $("sendBtn").disabled = false;
+      }
+    });
+  </script>
+</body>
+</html>

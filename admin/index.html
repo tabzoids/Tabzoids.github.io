@@ -77,6 +77,17 @@
     .empty, .denied{ padding:26px 16px; color:var(--muted); text-align:center; font-size:.95rem; }
     .denied{ color:var(--danger); }
     .msg{ font-size:.85rem; margin-top:12px; min-height:1.1em; color:var(--muted); }
+    .tabs{ display:flex; gap:6px; margin-bottom:18px; }
+    .tab{
+      appearance:none; cursor:pointer; font-weight:600; font-family:var(--body); font-size:.85rem;
+      padding:9px 16px; border-radius:9px; color:var(--muted);
+      background:var(--bg-elev); border:1px solid var(--border); transition:color .15s, background .15s, border-color .15s;
+    }
+    .tab:hover{ color:#fff; border-color:var(--accent); }
+    .tab.active{ color:#fff; background:#1c1930; border-color:var(--accent); }
+    td.msg-from{ color:#dcd6ff; font-weight:600; white-space:nowrap; vertical-align:top; }
+    td.msg-from small{ display:block; color:var(--muted); font-weight:400; }
+    td.msg-body{ color:var(--ink); max-width:360px; white-space:pre-wrap; word-break:break-word; }
   </style>
 </head>
 <body class="loading">
@@ -93,28 +104,52 @@
     </header>
 
     <main>
-      <h1>Waitlist</h1>
-      <p class="sub">Everyone who's subscribed from the landing page. Private — admins only.</p>
+      <h1>Admin</h1>
+      <p class="sub">Private dashboard — admins only.</p>
 
       <div id="denied" class="denied" style="display:none">
         You're signed in, but this account isn't an admin. Nothing to see here.
       </div>
 
       <div id="panel" style="display:none">
-        <div class="bar">
-          <span class="stat"><b id="count">0</b> subscribers</span>
-          <span class="spacer"></span>
-          <button id="refreshBtn" class="act" type="button">Refresh</button>
-          <button id="csvBtn" class="act primary" type="button">Export CSV</button>
+        <div class="tabs">
+          <button id="tabWaitlist" class="tab active" type="button">Waitlist</button>
+          <button id="tabMessages" class="tab" type="button">Messages</button>
         </div>
-        <div class="card">
-          <table>
-            <thead>
-              <tr><th>Email</th><th>Source</th><th>Signed up</th><th></th></tr>
-            </thead>
-            <tbody id="rows"></tbody>
-          </table>
+
+        <div id="waitlistView">
+          <div class="bar">
+            <span class="stat"><b id="count">0</b> subscribers</span>
+            <span class="spacer"></span>
+            <button id="refreshBtn" class="act" type="button">Refresh</button>
+            <button id="csvBtn" class="act primary" type="button">Export CSV</button>
+          </div>
+          <div class="card">
+            <table>
+              <thead>
+                <tr><th>Email</th><th>Source</th><th>Signed up</th><th></th></tr>
+              </thead>
+              <tbody id="rows"></tbody>
+            </table>
+          </div>
         </div>
+
+        <div id="messagesView" style="display:none">
+          <div class="bar">
+            <span class="stat"><b id="mcount">0</b> messages</span>
+            <span class="spacer"></span>
+            <button id="mrefreshBtn" class="act" type="button">Refresh</button>
+          </div>
+          <div class="card">
+            <table>
+              <thead>
+                <tr><th>From</th><th>Message</th><th>Received</th><th></th></tr>
+              </thead>
+              <tbody id="mrows"></tbody>
+            </table>
+          </div>
+        </div>
+
         <div id="msg" class="msg"></div>
       </div>
     </main>
@@ -128,6 +163,8 @@
     const $ = (id) => document.getElementById(id);
 
     let data = [];
+    let msgData = [];
+    let messagesLoaded = false;
 
     function setNavAva(url){
       const el = document.getElementById("navAva");
@@ -191,9 +228,55 @@
       URL.revokeObjectURL(a.href);
     }
 
+    async function loadMessages(){
+      const { data: rows, error } = await sb.from("contact_messages")
+        .select("id, name, email, message, created_at")
+        .order("created_at", { ascending:false });
+      if (error){ $("msg").textContent = error.message; return; }
+      msgData = rows || [];
+      $("mcount").textContent = msgData.length;
+      const body = $("mrows");
+      body.innerHTML = "";
+      if (!msgData.length){
+        body.innerHTML = '<tr><td colspan="4" class="empty">No messages yet.</td></tr>';
+        return;
+      }
+      for (const r of msgData){
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td class="msg-from"></td><td class="msg-body"></td><td class="date"></td><td class="del"><button title="Delete">&times;</button></td>';
+        const from = tr.querySelector(".msg-from");
+        from.textContent = r.name || "(no name)";
+        const em = document.createElement("small"); em.textContent = r.email; from.appendChild(em);
+        tr.querySelector(".msg-body").textContent = r.message;
+        tr.querySelector(".date").textContent = fmtDate(r.created_at);
+        tr.querySelector(".del button").addEventListener("click", () => removeMessage(r));
+        body.appendChild(tr);
+      }
+    }
+
+    async function removeMessage(r){
+      if (!confirm("Delete this message from " + r.email + "?")) return;
+      const { error } = await sb.from("contact_messages").delete().eq("id", r.id);
+      if (error){ $("msg").textContent = error.message; return; }
+      loadMessages();
+    }
+
+    function showTab(which){
+      const wl = which === "waitlist";
+      $("waitlistView").style.display = wl ? "" : "none";
+      $("messagesView").style.display = wl ? "none" : "";
+      $("tabWaitlist").classList.toggle("active", wl);
+      $("tabMessages").classList.toggle("active", !wl);
+      $("msg").textContent = "";
+      if (!wl && !messagesLoaded){ messagesLoaded = true; loadMessages(); }
+    }
+
     $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
     $("refreshBtn").addEventListener("click", load);
     $("csvBtn").addEventListener("click", exportCSV);
+    $("mrefreshBtn").addEventListener("click", loadMessages);
+    $("tabWaitlist").addEventListener("click", () => showTab("waitlist"));
+    $("tabMessages").addEventListener("click", () => showTab("messages"));
     sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
 
     (async () => {

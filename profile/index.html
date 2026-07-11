@@ -46,7 +46,7 @@
     }
     .nav a:hover, .nav button:hover{ color:#fff; background:var(--bg-elev); border-color:var(--border); }
     .nav a.active{ color:#fff; background:#1c1930; border-color:var(--accent); }
-    .nav-ava{ width:30px; height:30px; border-radius:50%; overflow:hidden; border:1px solid var(--border); background:#0f0f15; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; text-decoration:none; }
+    .nav-ava{ width:30px; height:30px; padding:0; flex:0 0 auto; border-radius:50%; overflow:hidden; border:1px solid var(--border); background:#0f0f15; display:inline-flex; align-items:center; justify-content:center; font-size:.9rem; text-decoration:none; }
     .nav-ava img{ width:100%; height:100%; object-fit:cover; display:block; }
     .nav-ava:hover{ border-color:var(--accent); }
 
@@ -103,7 +103,7 @@
         <a href="/profile" class="active">Profile</a>
         <a href="/admin" id="adminLink" style="display:none">Admin</a>
         <button id="logoutBtn" type="button">Log out</button>
-        <a href="/profile" class="nav-ava" id="navAva" title="Your profile"><span>🥫</span></a>
+        <a href="/profile" class="nav-ava" id="navAva" title="Your profile"></a>
       </nav>
     </header>
 

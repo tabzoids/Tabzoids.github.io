@@ -53,6 +53,24 @@
     .sub b{ color:#cdbcff; }
 
     .card{ background:var(--bg-elev); border:1px solid var(--border); border-radius:14px; padding:22px; }
+    .avatar-block{ display:flex; align-items:center; gap:16px; margin-bottom:20px; padding-bottom:20px; border-bottom:1px solid var(--border); }
+    .avatar{
+      width:84px; height:84px; border-radius:50%; flex:0 0 auto; overflow:hidden;
+      background:#0f0f15; border:1px solid var(--border);
+      display:flex; align-items:center; justify-content:center; font-size:1.9rem;
+    }
+    .avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+    .avatar-actions{ display:flex; flex-direction:column; gap:8px; }
+    .avatar-actions .row{ display:flex; gap:8px; }
+    .btn-sm{
+      appearance:none; cursor:pointer; font-weight:600; font-family:var(--body); font-size:.82rem;
+      padding:8px 14px; border-radius:9px; color:var(--ink);
+      background:#1c1930; border:1px solid var(--border); transition:border-color .15s, color .15s;
+    }
+    .btn-sm:hover{ border-color:var(--accent); }
+    .btn-sm.danger:hover{ border-color:var(--danger); color:var(--danger); }
+    .btn-sm:disabled{ opacity:.55; cursor:not-allowed; }
+    .avatar-hint{ font-size:.72rem; color:#6f6f80; }
     label{ display:block; font-size:.8rem; color:var(--muted); margin:0 0 5px; }
     .hint{ font-size:.72rem; color:#6f6f80; margin:-6px 0 12px; }
     input, textarea{
@@ -90,6 +108,18 @@
       <p class="sub">Your public tabist identity. Signed in as <b id="whoami"></b>.</p>
 
       <div class="card">
+        <div class="avatar-block">
+          <div class="avatar" id="avatar"><span>🥫</span></div>
+          <div class="avatar-actions">
+            <div class="row">
+              <button class="btn-sm" id="uploadBtn" type="button">Upload photo</button>
+              <button class="btn-sm danger" id="removeBtn" type="button" style="display:none">Remove</button>
+            </div>
+            <span class="avatar-hint">PNG, JPG, WEBP or GIF · up to 2 MB</span>
+          </div>
+          <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" style="display:none" />
+        </div>
+
         <label for="username">Username</label>
         <input id="username" type="text" placeholder="tabmaster" maxlength="40" autocomplete="off" />
         <p class="hint">Must be unique. Lowercase letters, numbers, and underscores work best.</p>
@@ -129,13 +159,53 @@
 
     async function loadProfile(){
       const { data, error } = await sb.from("profiles")
-        .select("username, display_name, bio").eq("id", userId).maybeSingle();
+        .select("username, display_name, bio, avatar_url").eq("id", userId).maybeSingle();
       if (error){ setMsg(error.message, "err"); return; }
       if (data){
         $("username").value = data.username || "";
         $("display_name").value = data.display_name || "";
         $("bio").value = data.bio || "";
+        setAvatar(data.avatar_url);
       }
+    }
+
+    function setAvatar(url){
+      const av = $("avatar");
+      if (url){
+        av.innerHTML = "";
+        const img = document.createElement("img");
+        img.src = url; img.alt = "Your avatar";
+        av.appendChild(img);
+        $("removeBtn").style.display = "";
+      } else {
+        av.innerHTML = "<span>🥫</span>";
+        $("removeBtn").style.display = "none";
+      }
+    }
+
+    async function uploadAvatar(file){
+      if (!file) return;
+      if (!/^image\/(png|jpe?g|webp|gif)$/.test(file.type)){ setMsg("Please choose a PNG, JPG, WEBP or GIF.", "err"); return; }
+      if (file.size > 2 * 1024 * 1024){ setMsg("Image must be under 2 MB.", "err"); return; }
+      $("uploadBtn").disabled = true; $("removeBtn").disabled = true; setMsg("Uploading…");
+      const path = userId + "/avatar";
+      const { error: upErr } = await sb.storage.from("avatars").upload(path, file, { upsert:true, contentType:file.type });
+      if (upErr){ setMsg(upErr.message, "err"); $("uploadBtn").disabled = false; $("removeBtn").disabled = false; return; }
+      const { data:{ publicUrl } } = sb.storage.from("avatars").getPublicUrl(path);
+      const url = publicUrl + "?v=" + Date.now();
+      const { error } = await sb.from("profiles").update({ avatar_url: url, updated_at: new Date().toISOString() }).eq("id", userId);
+      $("uploadBtn").disabled = false; $("removeBtn").disabled = false;
+      if (error){ setMsg(error.message, "err"); return; }
+      setAvatar(url); setMsg("Photo updated.", "ok");
+    }
+
+    async function removeAvatar(){
+      $("uploadBtn").disabled = true; $("removeBtn").disabled = true; setMsg("Removing…");
+      await sb.storage.from("avatars").remove([userId + "/avatar"]);
+      const { error } = await sb.from("profiles").update({ avatar_url: null, updated_at: new Date().toISOString() }).eq("id", userId);
+      $("uploadBtn").disabled = false; $("removeBtn").disabled = false;
+      if (error){ setMsg(error.message, "err"); return; }
+      setAvatar(null); setMsg("Photo removed.", "ok");
     }
 
     async function saveProfile(){
@@ -160,6 +230,9 @@
     }
 
     $("saveBtn").addEventListener("click", saveProfile);
+    $("uploadBtn").addEventListener("click", () => $("avatarFile").click());
+    $("avatarFile").addEventListener("change", (e) => { uploadAvatar(e.target.files[0]); e.target.value = ""; });
+    $("removeBtn").addEventListener("click", removeAvatar);
     $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
     sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
 

@@ -431,25 +431,30 @@
         btn.disabled = true;
         setNote("Adding you to the list…");
 
-        const { error } = await sb
-          .from("waitlist")
-          .insert({ email, source: "landing" });
-
-        if (error) {
-          // 23505 = unique_violation → already on the list
-          if (error.code === "23505" || /duplicate/i.test(error.message)) {
+        try {
+          const res = await fetch(SUPABASE_URL + "/functions/v1/waitlist-signup", {
+            method: "POST",
+            headers: { "Content-Type": "application/json", "apikey": SUPABASE_KEY, "Authorization": "Bearer " + SUPABASE_KEY },
+            body: JSON.stringify({ email, source: "landing" }),
+          });
+          const data = await res.json().catch(() => ({}));
+          if (!res.ok || data.error) {
+            setNote(data.error || "Something went wrong. Please try again.", "err");
+            btn.disabled = false;
+            return;
+          }
+          if (data.duplicate) {
             setNote("You're already on the list — see you soon.", "ok");
             input.value = "";
-          } else {
-            setNote("Something went wrong. Please try again.", "err");
-            btn.disabled = false;
+            return;
           }
-          return;
+          setNote("You're Added to the Tab List!", "ok");
+          input.value = "";
+          input.disabled = true;
+        } catch {
+          setNote("Network error. Please try again.", "err");
+          btn.disabled = false;
         }
-
-        setNote("You're Added to the Tab List!", "ok");
-        input.value = "";
-        input.disabled = true;
       });
     })();
 

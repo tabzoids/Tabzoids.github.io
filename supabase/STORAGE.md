@@ -5,26 +5,28 @@ Tab images live on **Cloudflare R2** (zero egress, 10 GB free). The Postgres
 
 ## Bucket
 
-- Bucket name: `tabzoid-vault`
-- Public access: R2 `r2.dev` dev subdomain for now; move to a custom domain
-  (e.g. `img.tabzoid.com`) before launch for CDN caching + stable URLs.
+- Bucket name: `tabzoid-vault` (region ENAM, Standard class)
+- Public base URL: `https://pub-46ac9b2e70d746d4a3386591c5210da8.r2.dev`
+  (r2.dev dev subdomain — rate-limited, dev-only; move to a custom domain
+  e.g. `img.tabzoid.com` before launch for CDN caching + stable URLs).
+- Full image URL = `<public base>/{id}/front.webp`, etc.
 
 ## Key naming convention
 
-Keyed by the `zoid_vault.id` (UUID — stable, unlike the slug):
+Keyed by `{brand_id}/{slug}` — readable, SEO-friendly, collision-safe across
+brands, and lets Postgres own the row `id` independently:
 
 ```
-{id}/front.webp
-{id}/front_thumb.webp
-{id}/back.webp
-{id}/back_thumb.webp
-{id}/can_top.webp        (optional, later)
-{id}/can_top_thumb.webp  (optional, later)
+{brand_id}/{slug}/front.webp
+{brand_id}/{slug}/front_thumb.webp
+{brand_id}/{slug}/back.webp
+{brand_id}/{slug}/back_thumb.webp
+{brand_id}/{slug}/can_top.webp        (optional, later)
+{brand_id}/{slug}/can_top_thumb.webp  (optional, later)
 ```
 
-Stored in the DB as full public URLs, e.g.
-`https://<public-domain>/{id}/front.webp` → `image_front`,
-`https://<public-domain>/{id}/front_thumb.webp` → `image_front_thumb`.
+Example: `BSW/hi-u-purple/front.webp`. Stored in the DB as full public URLs,
+e.g. `https://<public-base>/BSW/hi-u-purple/front.webp` → `image_front`.
 
 ## Image specs
 

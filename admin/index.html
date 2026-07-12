@@ -88,6 +88,20 @@
     td.msg-from{ color:#dcd6ff; font-weight:600; white-space:nowrap; vertical-align:top; }
     td.msg-from small{ display:block; color:var(--muted); font-weight:400; }
     td.msg-body{ color:var(--ink); max-width:360px; white-space:pre-wrap; word-break:break-word; }
+
+    /* Vault gallery */
+    .vsearch{ background:var(--bg-elev); border:1px solid var(--border); border-radius:9px; color:var(--ink); font:inherit; font-size:.85rem; padding:8px 12px; min-width:180px; }
+    .vsearch:focus{ outline:none; border-color:var(--accent); }
+    .vgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:14px; }
+    .vcard{ background:var(--bg-elev); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+    .vcard .thumb{ aspect-ratio:3/4; background:#0f0f15; display:flex; align-items:center; justify-content:center; overflow:hidden; }
+    .vcard .thumb img{ width:100%; height:100%; object-fit:contain; }
+    .vcard .meta{ padding:8px 10px; }
+    .vcard .t{ font-weight:600; font-size:.82rem; color:#eae9f4; }
+    .vcard .m{ font-size:.72rem; color:var(--muted); margin-top:2px; }
+    .pill{ display:inline-block; margin-top:7px; font-size:.64rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:999px; cursor:pointer; border:1px solid var(--border); background:#0f0f15; color:var(--muted); transition:border-color .15s; }
+    .pill:hover{ border-color:var(--accent); }
+    .pill.published{ color:var(--ok); border-color:rgba(87,211,140,.4); background:rgba(87,211,140,.08); }
   </style>
 </head>
 <body class="loading">
@@ -115,6 +129,7 @@
         <div class="tabs">
           <button id="tabWaitlist" class="tab active" type="button">Waitlist</button>
           <button id="tabMessages" class="tab" type="button">Messages</button>
+          <button id="tabVault" class="tab" type="button">Vault</button>
         </div>
 
         <div id="waitlistView">
@@ -148,6 +163,16 @@
               <tbody id="mrows"></tbody>
             </table>
           </div>
+        </div>
+
+        <div id="vaultView" style="display:none">
+          <div class="bar">
+            <span class="stat"><b id="vcount">0</b> tabs</span>
+            <input id="vsearch" class="vsearch" type="text" placeholder="Search word / color / brand…" />
+            <span class="spacer"></span>
+            <button id="vrefreshBtn" class="act" type="button">Refresh</button>
+          </div>
+          <div id="vgrid" class="vgrid"></div>
         </div>
 
         <div id="msg" class="msg"></div>
@@ -261,14 +286,69 @@
       loadMessages();
     }
 
+    // ---- Vault (zoid_vault) ----
+    let vaultData = [];
+    let vaultLoaded = false;
+
+    async function loadVault(){
+      const { data: rows, error } = await sb.from("zoid_vault")
+        .select("id,title,slug,color_type,color_variant,mark_media,image_front_thumb,publishing_status,brand")
+        .order("color_type", { ascending:true })
+        .order("slug", { ascending:true });
+      if (error){ $("msg").textContent = error.message; return; }
+      vaultData = rows || [];
+      renderVault();
+    }
+
+    function renderVault(){
+      const q = ($("vsearch").value || "").trim().toLowerCase();
+      const list = q
+        ? vaultData.filter(r => [r.title, r.mark_media, r.color_type, r.color_variant, r.brand]
+            .some(v => (v || "").toLowerCase().includes(q)))
+        : vaultData;
+      $("vcount").textContent = list.length;
+      const grid = $("vgrid"); grid.innerHTML = "";
+      if (!list.length){ grid.innerHTML = '<div class="empty">No tabs.</div>'; return; }
+      for (const r of list){
+        const card = document.createElement("div"); card.className = "vcard";
+        const thumb = document.createElement("div"); thumb.className = "thumb";
+        if (r.image_front_thumb){
+          const img = document.createElement("img");
+          img.loading = "lazy"; img.src = r.image_front_thumb; img.alt = r.title || "";
+          thumb.appendChild(img);
+        }
+        const meta = document.createElement("div"); meta.className = "meta";
+        meta.innerHTML = '<div class="t"></div><div class="m"></div>';
+        meta.querySelector(".t").textContent = r.mark_media || r.title || r.slug;
+        meta.querySelector(".m").textContent = r.color_type + (r.color_variant ? " · " + r.color_variant : "");
+        const pub = r.publishing_status === "Published";
+        const pill = document.createElement("span");
+        pill.className = "pill " + (pub ? "published" : "other");
+        pill.textContent = r.publishing_status || "—";
+        pill.title = "Click to " + (pub ? "unpublish" : "publish");
+        pill.addEventListener("click", () => togglePublish(r));
+        meta.appendChild(pill);
+        card.appendChild(thumb); card.appendChild(meta);
+        grid.appendChild(card);
+      }
+    }
+
+    async function togglePublish(r){
+      const next = r.publishing_status === "Published" ? "Candidate" : "Published";
+      const { error } = await sb.from("zoid_vault").update({ publishing_status: next }).eq("id", r.id);
+      if (error){ $("msg").textContent = error.message; return; }
+      r.publishing_status = next; renderVault();
+    }
+
     function showTab(which){
-      const wl = which === "waitlist";
-      $("waitlistView").style.display = wl ? "" : "none";
-      $("messagesView").style.display = wl ? "none" : "";
-      $("tabWaitlist").classList.toggle("active", wl);
-      $("tabMessages").classList.toggle("active", !wl);
+      const views = { waitlist:"waitlistView", messages:"messagesView", vault:"vaultView" };
+      for (const [k, v] of Object.entries(views)) $(v).style.display = (k === which) ? "" : "none";
+      $("tabWaitlist").classList.toggle("active", which === "waitlist");
+      $("tabMessages").classList.toggle("active", which === "messages");
+      $("tabVault").classList.toggle("active", which === "vault");
       $("msg").textContent = "";
-      if (!wl && !messagesLoaded){ messagesLoaded = true; loadMessages(); }
+      if (which === "messages" && !messagesLoaded){ messagesLoaded = true; loadMessages(); }
+      if (which === "vault" && !vaultLoaded){ vaultLoaded = true; loadVault(); }
     }
 
     $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
@@ -277,6 +357,9 @@
     $("mrefreshBtn").addEventListener("click", loadMessages);
     $("tabWaitlist").addEventListener("click", () => showTab("waitlist"));
     $("tabMessages").addEventListener("click", () => showTab("messages"));
+    $("tabVault").addEventListener("click", () => showTab("vault"));
+    $("vrefreshBtn").addEventListener("click", loadVault);
+    $("vsearch").addEventListener("input", renderVault);
     sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
 
     (async () => {

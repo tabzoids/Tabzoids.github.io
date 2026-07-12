@@ -1,0 +1,67 @@
+color	word	file
+purple	hi u	hi-u-purple.png
+purple-extra-dark	ciao	ciao-purple-extra-dark.png
+purple-extra-dark	hi u	hi-u-purple-extra-dark.png
+purple-extra-dark	woo!	woo-x-purple-extra-dark.png
+purple-extra-dark	ho ho	ho-ho-purple-extra-dark.png
+purple-light	ahem	ahem-purple-light.png
+purple-light	ciao	ciao-purple-light.png
+green-light	ayo	ayo-green-light.png
+green-light	hi	hi-green-light.png
+green-light	hehe	hehe-green-light.png
+green-dark	aloha	aloha-green-dark.png
+green-dark	hiya	hiya-green-dark.png
+green-dark	oooh	oooh-green-dark.png
+green-dark	oh hi	oh-hi-green-dark.png
+green-dark	hehe	hehe-green-dark.png
+green-dark	heyyy	heyyy-green-dark.png
+green-dark	tasty	tasty-green-dark.png
+green-dark	psst	psst-green-dark.png
+orange	yo	yo-orange.png
+orange	wow!	wow-x-orange.png
+orange	haayy	haayy-orange.png
+orange	yum	yum-orange.png
+orange	hiya	hiya-orange.png
+orange	ahem	ahem-orange.png
+orange	voilà!	voila-x-orange.png
+orange	voilà	voila-orange.png
+orange	wooh!	wooh-x-orange.png
+orange-light	sup	sup-orange-light.png
+orange-light	heya	heya-orange-light.png
+orange-light	yo	yo-orange-light.png
+orange-light	ayyy	ayyy-orange-light.png
+red	hiiii	hiiii-red.png
+red	ahh	ahh-red.png
+red	ahhh!	ahhh-x-red.png
+red	psst	psst-red.png
+red	zing	zing-red.png
+red	yo	yo-red.png
+red	yooo	yooo-red.png
+red	ha ha	ha-ha-red.png
+red-light	hey u	hey-u-red-light.png
+red-light	psst	psst-red-light.png
+red-light	zing	zing-red-light.png
+red-light	heyu	heyu-red-light.png
+red-dark	heyo	heyo-red-dark.png
+red-dark	yeah!	yeah-x-red-dark.png
+red-dark	yo	yo-red-dark.png
+red-dark	howdy	howdy-red-dark.png
+pink	psst	psst-pink.png
+pink	bam	bam-pink.png
+pink-dark	ayyy	ayyy-pink-dark.png
+pink-dark	hi u	hi-u-pink-dark.png
+pink-dark	hi hi	hi-hi-pink-dark.png
+pink-dark	howdy	howdy-pink-dark.png
+pink-dark	aw hi	aw-hi-pink-dark.png
+pink-dark	ciao	ciao-pink-dark.png
+pink-dark	yo yo	yo-yo-pink-dark.png
+pink-light	psst	psst-pink-light.png
+pink-light	ciao	ciao-pink-light.png
+gold	ayo	ayo-gold.png
+gold	mmm	mmm-gold.png
+gold	heyyo	heyyo-gold.png
+blue	sup	sup-blue.png
+blue	hi hi	hi-hi-blue.png
+blue	hello	hello-blue.png
+blue	ayo	ayo-blue.png
+black	bello	bello-black.png

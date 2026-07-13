@@ -49,12 +49,14 @@
       <label for="pass">Password</label>
       <input id="pass" type="password" autocomplete="new-password" placeholder="Password" required />
       <p class="hint">At least 6 characters.</p>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAD1LVVRMkJKcUBeh" data-theme="dark" style="margin:2px 0 14px;"></div>
       <button id="submit" class="primary" type="submit">Create account</button>
     </form>
     <p class="note" id="note" role="status" aria-live="polite"></p>
     <p class="alt">Already have an account? <a href="/login">Log in</a></p>
   </div>
 
+  <script src="https://challenge.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const sb = window.supabase.createClient("https://bgutoifpdohhlbhesjql.supabase.co", "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-");
@@ -67,11 +69,14 @@
       const password = $("pass").value;
       if (!email || !$("email").checkValidity()){ setNote("Enter a valid email.", "err"); return; }
       if (password.length < 6){ setNote("Password must be at least 6 characters.", "err"); return; }
+      const captchaToken = window.turnstile ? turnstile.getResponse() : "";
+      if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
       $("submit").disabled = true; setNote("Creating your account…");
       const { data, error } = await sb.auth.signUp({
         email, password,
-        options: { emailRedirectTo: window.location.origin + "/profile?welcome=1" },
+        options: { emailRedirectTo: window.location.origin + "/profile?welcome=1", captchaToken },
       });
+      if (window.turnstile) turnstile.reset();
       if (error){ setNote(error.message || "Could not sign up.", "err"); $("submit").disabled = false; return; }
       $("pass").value = "";
       if (data.session){

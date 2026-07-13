@@ -49,6 +49,7 @@
       <input id="email" type="email" autocomplete="email" placeholder="you@example.com" required />
       <label for="pass">Password</label>
       <input id="pass" type="password" autocomplete="current-password" placeholder="Password" required />
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAD1LVVRMkJKcUBeh" data-theme="dark" style="margin:2px 0 14px;"></div>
       <button id="submit" class="primary" type="submit">Log in</button>
     </form>
     <button id="forgot" class="link-btn" type="button">Forgot password?</button>
@@ -56,6 +57,7 @@
     <p class="alt">Need an account? <a href="/signup">Create one</a></p>
   </div>
 
+  <script src="https://challenge.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const sb = window.supabase.createClient("https://bgutoifpdohhlbhesjql.supabase.co", "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-");
@@ -67,8 +69,11 @@
       const email = $("email").value.trim();
       const password = $("pass").value;
       if (!email || !$("email").checkValidity() || !password){ setNote("Enter your email and password.", "err"); return; }
+      const captchaToken = window.turnstile ? turnstile.getResponse() : "";
+      if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
       $("submit").disabled = true; setNote("Logging in…");
-      const { error } = await sb.auth.signInWithPassword({ email, password });
+      const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken } });
+      if (window.turnstile) turnstile.reset();
       if (error){ setNote(error.message || "Could not log in.", "err"); $("submit").disabled = false; return; }
       setNote("Logged in — taking you to your tabs…", "ok");
       $("pass").value = "";
@@ -78,8 +83,11 @@
     $("forgot").addEventListener("click", async () => {
       const email = $("email").value.trim();
       if (!email || !$("email").checkValidity()){ setNote("Enter your email above, then tap reset.", "err"); $("email").focus(); return; }
+      const captchaToken = window.turnstile ? turnstile.getResponse() : "";
+      if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
       $("forgot").disabled = true; setNote("Sending reset link…");
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset" });
+      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset", captchaToken });
+      if (window.turnstile) turnstile.reset();
       $("forgot").disabled = false;
       if (error){ setNote(error.message, "err"); return; }
       setNote("If that email has an account, a reset link is on its way.", "ok");

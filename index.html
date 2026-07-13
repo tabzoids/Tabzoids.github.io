@@ -264,6 +264,7 @@
       <form id="loginForm" novalidate>
         <input id="loginEmail" type="email" name="email" placeholder="User" aria-label="Email" autocomplete="email" required />
         <input id="loginPass" type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required />
+        <div class="cf-turnstile" data-sitekey="0x4AAAAAAD1LVVRMkJKcUBeh" data-theme="dark" style="margin:0 0 12px;"></div>
         <button id="loginSubmit" class="login-submit" type="submit">Log in</button>
       </form>
       <button type="button" id="forgotBtn" class="link-btn">Forgot password?</button>
@@ -401,6 +402,7 @@
   </script>
 
   <!-- Supabase: shared client for waitlist + login -->
+  <script src="https://challenge.cloudflare.com/turnstile/v0/api.js" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script>
     const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
@@ -505,10 +507,14 @@
           return;
         }
 
+        const captchaToken = window.turnstile ? turnstile.getResponse() : "";
+        if (!captchaToken) { setNote("Please complete the verification below.", "err"); return; }
+
         submit.disabled = true;
         setNote("Logging in…");
 
-        const { error } = await sb.auth.signInWithPassword({ email, password });
+        const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken } });
+        if (window.turnstile) turnstile.reset();
         if (error) {
           setNote(error.message || "Could not log in.", "err");
           submit.disabled = false;
@@ -536,9 +542,12 @@
       forgotBtn.addEventListener("click", async () => {
         const email = emailEl.value.trim();
         if (!email || !emailEl.checkValidity()){ setNote("Enter your email above, then tap reset.", "err"); emailEl.focus(); return; }
+        const captchaToken = window.turnstile ? turnstile.getResponse() : "";
+        if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
         forgotBtn.disabled = true;
         setNote("Sending reset link…");
-        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset" });
+        const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset", captchaToken });
+        if (window.turnstile) turnstile.reset();
         forgotBtn.disabled = false;
         if (error){ setNote(error.message, "err"); return; }
         setNote("If that email has an account, a reset link is on its way.", "ok");

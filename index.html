@@ -256,17 +256,19 @@
     <div class="modal">
       <div class="modal-head">
         <div>
-          <h2 id="loginTitle">TABMIN ONLY</h2>
-          <p>come back soon to make an account.</p>
+          <h2 id="loginTitle">LOG IN</h2>
+          <p id="loginSub">welcome back, tabist.</p>
         </div>
         <button id="modalClose" class="modal-close" type="button" aria-label="Close">&times;</button>
       </div>
       <form id="loginForm" novalidate>
-        <input id="loginEmail" type="email" name="email" placeholder="User" aria-label="User" autocomplete="email" required />
+        <input id="loginEmail" type="email" name="email" placeholder="you@example.com" aria-label="Email" autocomplete="email" required />
         <input id="loginPass" type="password" name="password" placeholder="Password" aria-label="Password" autocomplete="current-password" required />
+        <p id="passHint" style="display:none; margin:-6px 2px 12px; font-size:.72rem; color:#6f6f80;">At least 6 characters.</p>
         <button id="loginSubmit" class="login-submit" type="submit">Log in</button>
       </form>
       <button type="button" id="forgotBtn" class="link-btn">Forgot password?</button>
+      <button type="button" id="modeToggle" class="link-btn">New here? Create an account</button>
       <p class="note" id="loginNote" role="status" aria-live="polite"></p>
     </div>
   </div>
@@ -470,11 +472,29 @@
       const note = document.getElementById("loginNote");
 
       let signedIn = false;
+      let mode = "login";
+      const modeToggle = document.getElementById("modeToggle");
+      const titleEl = document.getElementById("loginTitle");
+      const subEl = document.getElementById("loginSub");
+      const passHint = document.getElementById("passHint");
 
       function setNote(text, kind) {
         note.className = "note" + (kind ? " " + kind : "");
         note.textContent = text;
       }
+
+      function applyMode() {
+        const signup = mode === "signup";
+        titleEl.textContent = signup ? "SIGN UP" : "LOG IN";
+        subEl.textContent = signup ? "start your tab collection." : "welcome back, tabist.";
+        submit.textContent = signup ? "Create account" : "Log in";
+        passEl.setAttribute("autocomplete", signup ? "new-password" : "current-password");
+        passHint.style.display = signup ? "block" : "none";
+        document.getElementById("forgotBtn").style.display = signup ? "none" : "block";
+        modeToggle.textContent = signup ? "Already have an account? Log in" : "New here? Create an account";
+        setNote("");
+      }
+      modeToggle.addEventListener("click", () => { mode = mode === "login" ? "signup" : "login"; applyMode(); });
 
       function openModal() {
         setNote("");
@@ -504,21 +524,45 @@
           setNote("Enter your email and password.", "err");
           return;
         }
+        if (mode === "signup" && password.length < 6) {
+          setNote("Password must be at least 6 characters.", "err");
+          return;
+        }
 
         submit.disabled = true;
-        setNote("Logging in…");
+        setNote(mode === "signup" ? "Creating your account…" : "Logging in…");
+
+        if (mode === "signup") {
+          const { data, error } = await sb.auth.signUp({
+            email, password,
+            options: { emailRedirectTo: window.location.origin + "/tabs" },
+          });
+          if (error) {
+            setNote(error.message || "Could not sign up.", "err");
+            submit.disabled = false;
+            return;
+          }
+          passEl.value = "";
+          if (data.session) {
+            // Email confirmation is OFF → user is signed in immediately.
+            setNote("Account created — taking you in…", "ok");
+            window.location.href = "/tabs";
+          } else {
+            // Email confirmation is ON → they must confirm first.
+            setNote("Almost there — check your email to confirm your account.", "ok");
+            submit.disabled = false;
+          }
+          return;
+        }
 
         const { error } = await sb.auth.signInWithPassword({ email, password });
-
         if (error) {
           setNote(error.message || "Could not log in.", "err");
           submit.disabled = false;
           return;
         }
-
         setNote("Logged in — taking you to your tabs…", "ok");
         passEl.value = "";
-        // On success, send them to their gallery.
         window.location.href = "/tabs";
       });
 

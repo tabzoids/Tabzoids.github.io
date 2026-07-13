@@ -535,7 +535,7 @@
         if (mode === "signup") {
           const { data, error } = await sb.auth.signUp({
             email, password,
-            options: { emailRedirectTo: window.location.origin + "/tabs" },
+            options: { emailRedirectTo: window.location.origin + "/profile?welcome=1" },
           });
           if (error) {
             setNote(error.message || "Could not sign up.", "err");

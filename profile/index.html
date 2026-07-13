@@ -273,6 +273,9 @@
     $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
     sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
 
+    if (new URLSearchParams(location.search).get("welcome")) {
+      document.querySelector("h1").textContent = "Welcome to Tabzoid!";
+    }
     (async () => { const s = await guard(); if (s) loadProfile(); })();
   </script>
 </body>

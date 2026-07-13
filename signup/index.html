@@ -70,13 +70,11 @@
       if (!email || !$("email").checkValidity()){ setNote("Enter a valid email.", "err"); return; }
       if (password.length < 6){ setNote("Password must be at least 6 characters.", "err"); return; }
       const captchaToken = window.turnstile ? turnstile.getResponse() : "";
-      if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
       $("submit").disabled = true; setNote("Creating your account…");
-      const { data, error } = await sb.auth.signUp({
-        email, password,
-        options: { emailRedirectTo: window.location.origin + "/profile?welcome=1", captchaToken },
-      });
-      if (window.turnstile) turnstile.reset();
+      const suOpts = { emailRedirectTo: window.location.origin + "/profile?welcome=1" };
+      if (captchaToken) suOpts.captchaToken = captchaToken;
+      const { data, error } = await sb.auth.signUp({ email, password, options: suOpts });
+      if (window.turnstile) try { turnstile.reset(); } catch (_) {}
       if (error){ setNote(error.message || "Could not sign up.", "err"); $("submit").disabled = false; return; }
       $("pass").value = "";
       if (data.session){

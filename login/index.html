@@ -70,10 +70,9 @@
       const password = $("pass").value;
       if (!email || !$("email").checkValidity() || !password){ setNote("Enter your email and password.", "err"); return; }
       const captchaToken = window.turnstile ? turnstile.getResponse() : "";
-      if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
       $("submit").disabled = true; setNote("Logging in…");
-      const { error } = await sb.auth.signInWithPassword({ email, password, options: { captchaToken } });
-      if (window.turnstile) turnstile.reset();
+      const { error } = await sb.auth.signInWithPassword({ email, password, options: captchaToken ? { captchaToken } : {} });
+      if (window.turnstile) try { turnstile.reset(); } catch (_) {}
       if (error){ setNote(error.message || "Could not log in.", "err"); $("submit").disabled = false; return; }
       setNote("Logged in — taking you to your tabs…", "ok");
       $("pass").value = "";
@@ -84,10 +83,11 @@
       const email = $("email").value.trim();
       if (!email || !$("email").checkValidity()){ setNote("Enter your email above, then tap reset.", "err"); $("email").focus(); return; }
       const captchaToken = window.turnstile ? turnstile.getResponse() : "";
-      if (!captchaToken){ setNote("Please complete the verification below.", "err"); return; }
       $("forgot").disabled = true; setNote("Sending reset link…");
-      const { error } = await sb.auth.resetPasswordForEmail(email, { redirectTo: window.location.origin + "/reset", captchaToken });
-      if (window.turnstile) turnstile.reset();
+      const rpOpts = { redirectTo: window.location.origin + "/reset" };
+      if (captchaToken) rpOpts.captchaToken = captchaToken;
+      const { error } = await sb.auth.resetPasswordForEmail(email, rpOpts);
+      if (window.turnstile) try { turnstile.reset(); } catch (_) {}
       $("forgot").disabled = false;
       if (error){ setNote(error.message, "err"); return; }
       setNote("If that email has an account, a reset link is on its way.", "ok");

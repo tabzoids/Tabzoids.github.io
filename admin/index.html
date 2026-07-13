@@ -103,6 +103,27 @@
     .pill{ display:inline-block; margin-top:5px; font-size:.56rem; font-weight:700; letter-spacing:.03em; text-transform:uppercase; padding:2px 6px; border-radius:999px; cursor:pointer; border:1px solid var(--border); background:#0f0f15; color:var(--muted); transition:border-color .15s; }
     .pill:hover{ border-color:var(--accent); }
     .pill.published{ color:var(--ok); border-color:rgba(87,211,140,.4); background:rgba(87,211,140,.08); }
+
+    /* Submissions */
+    .sgrid{ display:grid; grid-template-columns:repeat(auto-fill,minmax(190px,1fr)); gap:12px; }
+    .scard{ background:var(--bg-elev); border:1px solid var(--border); border-radius:12px; overflow:hidden; display:flex; flex-direction:column; }
+    .scard .imgs{ display:flex; gap:4px; background:#0f0f15; padding:6px; }
+    .scard .imgs img{ width:50%; aspect-ratio:3/4; object-fit:contain; background:#0f0f15; border-radius:6px; }
+    .scard .body{ padding:8px 10px; flex:1; }
+    .scard .body .t{ font-weight:600; font-size:.85rem; color:#eae9f4; }
+    .scard .body .m{ font-size:.72rem; color:var(--muted); margin-top:2px; }
+    .scard .body .who{ font-size:.66rem; color:#6f6f80; margin-top:5px; }
+    .scard .acts{ display:flex; gap:6px; padding:0 10px 10px; }
+    .scard .acts button{ flex:1; cursor:pointer; font-weight:700; font-family:var(--body); font-size:.72rem; padding:7px; border-radius:8px; border:1px solid var(--border); background:#1c1930; color:var(--ink); }
+    .scard .acts .ok{ color:var(--ok); border-color:rgba(87,211,140,.4); }
+    .scard .acts .no{ color:var(--danger); border-color:rgba(255,107,107,.4); }
+    .scard .acts button:disabled{ opacity:.5; cursor:not-allowed; }
+    /* Users table cells */
+    td.admin-cell button, td.uacts button{ cursor:pointer; font-size:.72rem; padding:5px 9px; border-radius:7px; border:1px solid var(--border); background:#0f0f15; color:var(--muted); }
+    td.admin-cell button:hover, td.uacts button:hover{ border-color:var(--accent); color:#fff; }
+    td.admin-cell button.on{ color:var(--ok); border-color:rgba(87,211,140,.4); }
+    td.uacts{ text-align:right; white-space:nowrap; } td.uacts button{ margin-left:5px; }
+    td.uacts button.danger:hover{ border-color:var(--danger); color:var(--danger); }
   </style>
 </head>
 <body class="loading">
@@ -131,6 +152,8 @@
           <button id="tabWaitlist" class="tab active" type="button">Waitlist</button>
           <button id="tabMessages" class="tab" type="button">Messages</button>
           <button id="tabVault" class="tab" type="button">Vault</button>
+          <button id="tabSubmissions" class="tab" type="button">Submissions</button>
+          <button id="tabUsers" class="tab" type="button">Users</button>
         </div>
 
         <div id="waitlistView">
@@ -174,6 +197,30 @@
             <button id="vrefreshBtn" class="act" type="button">Refresh</button>
           </div>
           <div id="vgrid" class="vgrid"></div>
+        </div>
+
+        <div id="submissionsView" style="display:none">
+          <div class="bar">
+            <span class="stat"><b id="scount">0</b> pending</span>
+            <span class="spacer"></span>
+            <button id="srefreshBtn" class="act" type="button">Refresh</button>
+          </div>
+          <div id="sgrid" class="sgrid"></div>
+        </div>
+
+        <div id="usersView" style="display:none">
+          <div class="bar">
+            <span class="stat"><b id="ucount">0</b> users</span>
+            <input id="usearch" class="vsearch" type="text" placeholder="Search email / name…" />
+            <span class="spacer"></span>
+            <button id="urefreshBtn" class="act" type="button">Refresh</button>
+          </div>
+          <div class="card">
+            <table>
+              <thead><tr><th>User</th><th>Joined</th><th>Status</th><th>Admin</th><th></th></tr></thead>
+              <tbody id="urows"></tbody>
+            </table>
+          </div>
         </div>
 
         <div id="msg" class="msg"></div>
@@ -341,16 +388,178 @@
       r.publishing_status = next; renderVault();
     }
 
+    // ---- Submissions (moderation queue over tab_finds) ----
+    let adminId = null;
+
+    async function tabSigned(path){
+      if (!path) return null;
+      const { data } = await sb.storage.from("tab-uploads").createSignedUrl(path, 3600);
+      return data ? data.signedUrl : null;
+    }
+    async function thumbFromBlob(blob, maxEdge){
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(blob); });
+      let w = img.width, h = img.height; const s = Math.min(1, maxEdge / Math.max(w, h));
+      w = Math.round(w * s); h = Math.round(h * s);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h); URL.revokeObjectURL(img.src);
+      return await new Promise((r) => c.toBlob(r, "image/webp", 0.8));
+    }
+
+    async function loadSubmissions(){
+      const { data, error } = await sb.from("tab_finds")
+        .select("id,user_id,brand,flavor,color,mark,note,image_front,image_back,submitted_at")
+        .eq("review_status", "submitted").order("submitted_at", { ascending:true });
+      if (error){ $("msg").textContent = error.message; return; }
+      const subs = data || [];
+      $("scount").textContent = subs.length;
+      const ids = [...new Set(subs.map((s) => s.user_id))];
+      let pmap = {};
+      if (ids.length){
+        const { data: profs } = await sb.from("profiles").select("id,username,display_name").in("id", ids);
+        pmap = Object.fromEntries((profs ?? []).map((p) => [p.id, p]));
+      }
+      const grid = $("sgrid"); grid.innerHTML = "";
+      if (!subs.length){ grid.innerHTML = '<div class="empty">No pending submissions.</div>'; return; }
+      for (const s of subs){
+        const card = document.createElement("div"); card.className = "scard";
+        const imgs = document.createElement("div"); imgs.className = "imgs";
+        for (const p of [s.image_front, s.image_back]){
+          const img = document.createElement("img"); img.alt = "";
+          if (p) tabSigned(p).then((u) => { if (u) img.src = u; });
+          imgs.appendChild(img);
+        }
+        const body = document.createElement("div"); body.className = "body";
+        const who = pmap[s.user_id];
+        body.innerHTML = '<div class="t"></div><div class="m"></div><div class="who"></div>';
+        body.querySelector(".t").textContent = s.brand;
+        body.querySelector(".m").textContent = [s.flavor, s.color, s.mark].filter(Boolean).join(" · ");
+        body.querySelector(".who").textContent = "by " + (who ? (who.display_name || who.username || s.user_id.slice(0,8)) : s.user_id.slice(0,8));
+        const acts = document.createElement("div"); acts.className = "acts";
+        const ap = document.createElement("button"); ap.className = "ok"; ap.textContent = "Approve";
+        ap.addEventListener("click", () => approveSub(s, ap));
+        const rj = document.createElement("button"); rj.className = "no"; rj.textContent = "Reject";
+        rj.addEventListener("click", () => rejectSub(s));
+        acts.appendChild(ap); acts.appendChild(rj);
+        card.appendChild(imgs); card.appendChild(body); card.appendChild(acts);
+        grid.appendChild(card);
+      }
+    }
+
+    async function approveSub(s, btn){
+      if (btn) btn.disabled = true;
+      $("msg").textContent = "Approving…";
+      try {
+        const urls = {};
+        for (const [side, path] of [["front", s.image_front], ["back", s.image_back]]){
+          if (!path) continue;
+          const { data: blob, error: dErr } = await sb.storage.from("tab-uploads").download(path);
+          if (dErr) throw dErr;
+          const fullKey = "ugc/" + s.id + "/" + side + ".webp";
+          const { error: e1 } = await sb.storage.from("catalog-ugc").upload(fullKey, blob, { upsert:true, contentType:"image/webp" });
+          if (e1) throw e1;
+          urls["image_" + side] = sb.storage.from("catalog-ugc").getPublicUrl(fullKey).data.publicUrl;
+          const tb = await thumbFromBlob(blob, 300);
+          const thumbKey = "ugc/" + s.id + "/" + side + "_thumb.webp";
+          const { error: e2 } = await sb.storage.from("catalog-ugc").upload(thumbKey, tb, { upsert:true, contentType:"image/webp" });
+          if (e2) throw e2;
+          urls["image_" + side + "_thumb"] = sb.storage.from("catalog-ugc").getPublicUrl(thumbKey).data.publicUrl;
+        }
+        const { data: vrow, error: vErr } = await sb.from("zoid_vault").insert({
+          title: s.brand + (s.mark ? (" — " + s.mark) : ""),
+          slug: "ugc-" + s.id.slice(0, 8),
+          brand: s.brand, flavor: s.flavor, color_type: s.color, mark_media: s.mark,
+          image_front: urls.image_front || null, image_front_thumb: urls.image_front_thumb || null,
+          image_back: urls.image_back || null, image_back_thumb: urls.image_back_thumb || null,
+          publishing_status: "Candidate",
+        }).select("id").single();
+        if (vErr) throw vErr;
+        const { error: uErr } = await sb.from("tab_finds").update({
+          review_status: "approved", reviewed_by: adminId, reviewed_at: new Date().toISOString(), vault_id: vrow.id,
+        }).eq("id", s.id);
+        if (uErr) throw uErr;
+        $("msg").textContent = "Approved — added to the catalog as a Candidate. Publish it from the Vault tab.";
+        vaultLoaded = false; loadSubmissions();
+      } catch (e){
+        $("msg").textContent = "Approve failed: " + (e.message || e);
+        if (btn) btn.disabled = false;
+      }
+    }
+
+    async function rejectSub(s){
+      const reason = prompt("Reason for rejection (shown to the user):");
+      if (reason === null) return;
+      const { error } = await sb.from("tab_finds").update({
+        review_status: "rejected", review_note: reason || null, reviewed_by: adminId, reviewed_at: new Date().toISOString(),
+      }).eq("id", s.id);
+      if (error){ $("msg").textContent = error.message; return; }
+      loadSubmissions();
+    }
+
+    // ---- Users (via admin-users Edge Function) ----
+    let usersData = [];
+    let usersLoaded = false;
+
+    async function callAdmin(action, payload){
+      const { data, error } = await sb.functions.invoke("admin-users", { body: { action, ...payload } });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      return data;
+    }
+    async function loadUsers(){
+      $("msg").textContent = "Loading users…";
+      try { const d = await callAdmin("list", {}); usersData = d.users || []; $("msg").textContent = ""; renderUsers(); }
+      catch (e){ $("msg").textContent = "Could not load users: " + e.message; }
+    }
+    function renderUsers(){
+      const q = ($("usearch").value || "").trim().toLowerCase();
+      const list = q ? usersData.filter((u) => [u.email, u.username, u.display_name].some((v) => (v || "").toLowerCase().includes(q))) : usersData;
+      $("ucount").textContent = list.length;
+      const body = $("urows"); body.innerHTML = "";
+      if (!list.length){ body.innerHTML = '<tr><td colspan="5" class="empty">No users.</td></tr>'; return; }
+      for (const u of list){
+        const banned = u.banned_until && new Date(u.banned_until) > new Date();
+        const tr = document.createElement("tr");
+        tr.innerHTML = '<td class="email"></td><td class="date"></td><td class="src"></td><td class="admin-cell"></td><td class="uacts"></td>';
+        tr.querySelector(".email").textContent = u.email + (u.display_name ? (" · " + u.display_name) : "");
+        tr.querySelector(".date").textContent = fmtDate(u.created_at);
+        tr.querySelector(".src").textContent = banned ? "Banned" : "Active";
+        const ab = document.createElement("button"); ab.textContent = u.is_admin ? "Admin ✓" : "Make admin";
+        if (u.is_admin) ab.classList.add("on");
+        ab.addEventListener("click", () => toggleAdmin(u)); tr.querySelector(".admin-cell").appendChild(ab);
+        const ua = tr.querySelector(".uacts");
+        const bb = document.createElement("button"); bb.textContent = banned ? "Unban" : "Ban";
+        bb.addEventListener("click", () => banUser(u, !banned)); ua.appendChild(bb);
+        const db = document.createElement("button"); db.className = "danger"; db.textContent = "Delete";
+        db.addEventListener("click", () => deleteUser(u)); ua.appendChild(db);
+        body.appendChild(tr);
+      }
+    }
+    async function toggleAdmin(u){
+      if (!confirm((u.is_admin ? "Remove admin from " : "Grant admin to ") + u.email + "?")) return;
+      try { await callAdmin("setAdmin", { userId: u.id, value: !u.is_admin }); u.is_admin = !u.is_admin; renderUsers(); }
+      catch (e){ $("msg").textContent = e.message; }
+    }
+    async function banUser(u, ban){
+      try { await callAdmin("ban", { userId: u.id, value: ban ? undefined : false });
+        u.banned_until = ban ? new Date(Date.now() + 3.1e12).toISOString() : null; renderUsers(); }
+      catch (e){ $("msg").textContent = e.message; }
+    }
+    async function deleteUser(u){
+      if (!confirm("Permanently delete " + u.email + " and all their data?")) return;
+      try { await callAdmin("delete", { userId: u.id }); usersData = usersData.filter((x) => x.id !== u.id); renderUsers(); }
+      catch (e){ $("msg").textContent = e.message; }
+    }
+
     function showTab(which){
-      const views = { waitlist:"waitlistView", messages:"messagesView", vault:"vaultView" };
+      const views = { waitlist:"waitlistView", messages:"messagesView", vault:"vaultView", submissions:"submissionsView", users:"usersView" };
       for (const [k, v] of Object.entries(views)) $(v).style.display = (k === which) ? "" : "none";
-      document.querySelector("main").classList.toggle("wide", which === "vault");
-      $("tabWaitlist").classList.toggle("active", which === "waitlist");
-      $("tabMessages").classList.toggle("active", which === "messages");
-      $("tabVault").classList.toggle("active", which === "vault");
+      document.querySelector("main").classList.toggle("wide", which === "vault" || which === "submissions" || which === "users");
+      for (const t of ["Waitlist","Messages","Vault","Submissions","Users"]) $("tab" + t).classList.toggle("active", which === t.toLowerCase());
       $("msg").textContent = "";
       if (which === "messages" && !messagesLoaded){ messagesLoaded = true; loadMessages(); }
       if (which === "vault" && !vaultLoaded){ vaultLoaded = true; loadVault(); }
+      if (which === "submissions"){ loadSubmissions(); }
+      if (which === "users" && !usersLoaded){ usersLoaded = true; loadUsers(); }
     }
 
     $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
@@ -362,6 +571,11 @@
     $("tabVault").addEventListener("click", () => showTab("vault"));
     $("vrefreshBtn").addEventListener("click", loadVault);
     $("vsearch").addEventListener("input", renderVault);
+    $("tabSubmissions").addEventListener("click", () => showTab("submissions"));
+    $("tabUsers").addEventListener("click", () => showTab("users"));
+    $("srefreshBtn").addEventListener("click", loadSubmissions);
+    $("urefreshBtn").addEventListener("click", loadUsers);
+    $("usearch").addEventListener("input", renderUsers);
     sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
 
     (async () => {
@@ -371,6 +585,7 @@
       const { data: prof } = await sb.from("profiles").select("is_admin, avatar_url").eq("id", session.user.id).maybeSingle();
       if (prof) setNavAva(prof.avatar_url);
       if (!prof || !prof.is_admin){ $("denied").style.display = "block"; return; }
+      adminId = session.user.id;
       $("panel").style.display = "block";
       load();
     })();

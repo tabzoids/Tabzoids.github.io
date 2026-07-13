@@ -92,6 +92,10 @@
     .msg{ font-size:.85rem; margin-top:10px; min-height:1.1em; }
     .msg.err{ color:var(--danger); } .msg.ok{ color:var(--ok); }
     .idline{ color:var(--muted); font-size:.78rem; margin-top:16px; }
+    .danger-zone{ margin-top:22px; background:var(--bg-elev); border:1px solid #3a2330; border-radius:14px; padding:20px 22px; }
+    .danger-zone h2{ font-size:1rem; margin:0 0 4px; color:var(--danger); font-family:var(--body); font-weight:700; }
+    .danger-zone p{ font-size:.85rem; color:var(--muted); margin:0 0 14px; }
+    .danger-zone .msg{ margin-top:12px; }
   </style>
 </head>
 <body class="loading">
@@ -136,6 +140,13 @@
 
         <button id="saveBtn" class="primary" type="button">Save profile</button>
         <div id="msg" class="msg"></div>
+      </div>
+
+      <div class="danger-zone">
+        <h2>Delete account</h2>
+        <p>Permanently removes your profile, your tabs, and every photo you've uploaded. This can't be undone.</p>
+        <button id="deleteAcctBtn" class="btn-sm danger" type="button">Delete my account</button>
+        <div id="delMsg" class="msg"></div>
       </div>
     </main>
   </div>
@@ -241,6 +252,20 @@
       setMsg("Profile saved.", "ok");
     }
 
+    async function deleteAccount(){
+      const typed = prompt("This permanently deletes your account, tabs, and photos.\n\nType DELETE to confirm.");
+      if (typed !== "DELETE") return;
+      const dm = $("delMsg");
+      $("deleteAcctBtn").disabled = true;
+      dm.className = "msg"; dm.textContent = "Deleting your account…";
+      const { error } = await sb.functions.invoke("delete-account", { method: "POST" });
+      if (error){ dm.className = "msg err"; dm.textContent = "Could not delete: " + error.message; $("deleteAcctBtn").disabled = false; return; }
+      await sb.auth.signOut();
+      alert("Your account has been deleted.");
+      window.location.replace("/");
+    }
+
+    $("deleteAcctBtn").addEventListener("click", deleteAccount);
     $("saveBtn").addEventListener("click", saveProfile);
     $("uploadBtn").addEventListener("click", () => $("avatarFile").click());
     $("avatarFile").addEventListener("change", (e) => { uploadAvatar(e.target.files[0]); e.target.value = ""; });

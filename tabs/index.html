@@ -93,6 +93,19 @@
     .find .del:hover{ color:var(--danger); background:#0f0f15; }
     .empty{ color:var(--muted); font-size:.92rem; padding:8px 2px; }
     .pill{ display:inline-block; font-size:.7rem; padding:3px 9px; border-radius:999px; background:#0f0f15; border:1px solid var(--border); color:var(--muted); }
+    .row2{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+    .filedrop{ margin-bottom:12px; }
+    .filedrop input[type=file]{ font-size:.82rem; padding:8px; }
+    .find .thumbs{ display:flex; gap:6px; margin-bottom:4px; }
+    .find .thumbs img{ width:52px; height:68px; object-fit:cover; border-radius:6px; border:1px solid var(--border); background:#0f0f15; }
+    .find .meta{ color:var(--muted); font-size:.78rem; }
+    .find .actions{ display:flex; gap:6px; margin-top:8px; flex-wrap:wrap; }
+    .find .actions button{ appearance:none; cursor:pointer; font-weight:600; font-family:var(--body); font-size:.74rem; padding:6px 10px; border-radius:8px; color:var(--ink); background:#1c1930; border:1px solid var(--border); transition:border-color .15s,color .15s; }
+    .find .actions button:hover{ border-color:var(--accent); }
+    .status{ display:inline-block; width:fit-content; margin-top:4px; font-size:.62rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; padding:3px 8px; border-radius:999px; border:1px solid var(--border); background:#0f0f15; color:var(--muted); }
+    .status.submitted{ color:var(--accent); border-color:rgba(138,102,255,.5); }
+    .status.approved{ color:var(--ok); border-color:rgba(87,211,140,.4); }
+    .status.rejected{ color:var(--danger); border-color:rgba(255,107,107,.4); }
   </style>
 </head>
 <body class="loading">
@@ -113,12 +126,22 @@
       <p class="sub">Signed in as <b id="whoami"></b> <span class="pill">RLS-protected</span></p>
 
       <div class="card">
-        <h2>Log a new find</h2>
-        <label for="brand">Brand</label>
-        <input id="brand" type="text" placeholder="e.g. Jolt Cola" maxlength="120" />
-        <label for="note">Note (optional)</label>
+        <h2>Add a tab</h2>
+        <label for="brand">Brand *</label>
+        <input id="brand" type="text" placeholder="e.g. Bubly Sparkling Water" maxlength="120" />
+        <div class="row2">
+          <div><label for="flavor">Flavor</label><input id="flavor" type="text" maxlength="80" placeholder="e.g. Cherry" /></div>
+          <div><label for="color">Color</label><input id="color" type="text" maxlength="40" placeholder="e.g. red" /></div>
+        </div>
+        <label for="mark">Word / mark</label>
+        <input id="mark" type="text" maxlength="60" placeholder="e.g. hi u" />
+        <label for="note">Note</label>
         <input id="note" type="text" placeholder="e.g. found in a 1987 time capsule" maxlength="240" />
-        <button id="addBtn" class="primary" type="button">Log this find</button>
+        <div class="row2">
+          <div class="filedrop"><label for="frontFile">Front photo</label><input id="frontFile" type="file" accept="image/*" /></div>
+          <div class="filedrop"><label for="backFile">Back photo</label><input id="backFile" type="file" accept="image/*" /></div>
+        </div>
+        <button id="addBtn" class="primary" type="button">Add to collection</button>
         <div id="addMsg" class="msg"></div>
       </div>
 
@@ -156,46 +179,128 @@
       else { el.innerHTML = "<span>🥫</span>"; }
     }
 
-    // ---- finds CRUD ----
+    // ---- client-side image -> capped WebP ----
+    async function toWebp(file, maxEdge){
+      if (!file) return null;
+      const img = await new Promise((res, rej) => { const i = new Image(); i.onload = () => res(i); i.onerror = rej; i.src = URL.createObjectURL(file); });
+      let w = img.width, h = img.height;
+      const scale = Math.min(1, maxEdge / Math.max(w, h));
+      w = Math.round(w * scale); h = Math.round(h * scale);
+      const c = document.createElement("canvas"); c.width = w; c.height = h;
+      c.getContext("2d").drawImage(img, 0, 0, w, h);
+      URL.revokeObjectURL(img.src);
+      return await new Promise((res) => c.toBlob(res, "image/webp", 0.85));
+    }
+
+    async function uploadImage(userId, findId, side, file){
+      if (!file) return null;
+      if (!/^image\//.test(file.type)){ throw new Error("Photos must be image files."); }
+      if (file.size > 10 * 1024 * 1024){ throw new Error("Each photo must be under 10 MB."); }
+      const blob = await toWebp(file, 1400);
+      const path = userId + "/" + findId + "/" + side + ".webp";
+      const { error } = await sb.storage.from("tab-uploads").upload(path, blob, { upsert:true, contentType:"image/webp" });
+      if (error) throw error;
+      return path;
+    }
+
+    async function signed(path){
+      if (!path) return null;
+      const { data } = await sb.storage.from("tab-uploads").createSignedUrl(path, 3600);
+      return data ? data.signedUrl : null;
+    }
+
+    const STATUS_LABEL = { private:"Private", submitted:"Pending review", approved:"In catalog", rejected:"Needs changes" };
+
+    // ---- collection + submission ----
     async function loadFinds(){
       const { data, error } = await sb.from("tab_finds")
-        .select("id, brand, note, found_at")
+        .select("id, brand, flavor, color, mark, note, image_front, image_back, review_status, review_note, found_at")
         .order("found_at", { ascending:false });
       const list = $("findsList");
-      if (error){ list.innerHTML = '<li class="empty">Could not load finds: ' + error.message + '</li>'; return; }
+      if (error){ list.innerHTML = '<li class="empty">Could not load: ' + error.message + '</li>'; return; }
       list.innerHTML = "";
-      if (!data.length){ list.innerHTML = '<li class="empty">No finds logged yet — add your first one above.</li>'; return; }
+      if (!data.length){ list.innerHTML = '<li class="empty">No tabs yet — add your first one above.</li>'; return; }
       for (const f of data){
-        const li = document.createElement("li");
-        li.className = "find";
-        const d = new Date(f.found_at).toLocaleDateString(undefined, { year:"numeric", month:"short", day:"numeric" });
+        const li = document.createElement("li"); li.className = "find";
+        const status = f.review_status || "private";
+        const meta = [f.flavor, f.color, f.mark].filter(Boolean).join(" · ");
         li.innerHTML =
-          '<button class="del" title="Delete" aria-label="Delete find">&times;</button>' +
+          '<button class="del" title="Delete">&times;</button>' +
+          '<div class="thumbs"></div>' +
           '<span class="brand"></span>' +
+          '<span class="meta"></span>' +
           '<span class="note"></span>' +
-          '<span class="date"></span>';
+          '<span class="status ' + status + '"></span>' +
+          '<div class="actions"></div>';
         li.querySelector(".brand").textContent = f.brand;
+        li.querySelector(".meta").textContent = meta;
         li.querySelector(".note").textContent = f.note || "";
-        li.querySelector(".date").textContent = "Logged " + d;
-        li.querySelector(".del").addEventListener("click", () => removeFind(f.id));
+        li.querySelector(".status").textContent = STATUS_LABEL[status] || status;
+        const th = li.querySelector(".thumbs");
+        for (const p of [f.image_front, f.image_back]){
+          if (!p) continue;
+          const img = document.createElement("img"); img.alt = "";
+          signed(p).then(u => { if (u) img.src = u; });
+          th.appendChild(img);
+        }
+        const act = li.querySelector(".actions");
+        if (status === "private" || status === "rejected"){
+          const b = document.createElement("button"); b.textContent = "Submit for review";
+          b.addEventListener("click", () => setStatus(f.id, "submitted")); act.appendChild(b);
+        } else if (status === "submitted"){
+          const b = document.createElement("button"); b.textContent = "Withdraw";
+          b.addEventListener("click", () => setStatus(f.id, "private")); act.appendChild(b);
+        }
+        if (status === "rejected" && f.review_note){
+          const n = document.createElement("span"); n.className = "meta"; n.textContent = "Reviewer: " + f.review_note; li.appendChild(n);
+        }
+        li.querySelector(".del").addEventListener("click", () => removeFind(f));
         list.appendChild(li);
       }
     }
 
     async function addFind(){
-      const brand = $("brand").value.trim(), note = $("note").value.trim();
+      const brand = $("brand").value.trim();
       if (!brand){ setMsg($("addMsg"), "Enter a brand first.", "err"); return; }
       $("addBtn").disabled = true; setMsg($("addMsg"), "Saving…");
-      const { error } = await sb.from("tab_finds").insert({ brand, note: note || null });
-      $("addBtn").disabled = false;
+      try {
+        const { data: { user } } = await sb.auth.getUser();
+        const { data: row, error } = await sb.from("tab_finds").insert({
+          brand,
+          flavor: $("flavor").value.trim() || null,
+          color: $("color").value.trim() || null,
+          mark: $("mark").value.trim() || null,
+          note: $("note").value.trim() || null,
+        }).select("id").single();
+        if (error) throw error;
+        const frontPath = await uploadImage(user.id, row.id, "front", $("frontFile").files[0]);
+        const backPath  = await uploadImage(user.id, row.id, "back",  $("backFile").files[0]);
+        if (frontPath || backPath){
+          const { error: e2 } = await sb.from("tab_finds").update({ image_front: frontPath, image_back: backPath }).eq("id", row.id);
+          if (e2) throw e2;
+        }
+        ["brand","flavor","color","mark","note"].forEach(id => { $(id).value = ""; });
+        $("frontFile").value = ""; $("backFile").value = "";
+        setMsg($("addMsg"), "Added to your collection.", "ok");
+        loadFinds();
+      } catch (e){
+        setMsg($("addMsg"), e.message || String(e), "err");
+      } finally {
+        $("addBtn").disabled = false;
+      }
+    }
+
+    async function setStatus(id, status){
+      const { error } = await sb.from("tab_finds").update({ review_status: status }).eq("id", id);
       if (error){ setMsg($("addMsg"), error.message, "err"); return; }
-      $("brand").value = ""; $("note").value = "";
-      setMsg($("addMsg"), "Saved.", "ok");
       loadFinds();
     }
 
-    async function removeFind(id){
-      const { error } = await sb.from("tab_finds").delete().eq("id", id);
+    async function removeFind(f){
+      if (!confirm("Delete this tab from your collection?")) return;
+      const paths = [f.image_front, f.image_back].filter(Boolean);
+      if (paths.length){ try { await sb.storage.from("tab-uploads").remove(paths); } catch (_) {} }
+      const { error } = await sb.from("tab_finds").delete().eq("id", f.id);
       if (error){ setMsg($("addMsg"), error.message, "err"); return; }
       loadFinds();
     }

@@ -138,6 +138,12 @@
         <label for="bio">Bio</label>
         <textarea id="bio" placeholder="Collector of can tabs since…" maxlength="400"></textarea>
 
+        <label for="link1">Profile links</label>
+        <p class="hint">Up to 3 — your socials, website, anywhere.</p>
+        <input id="link1" type="url" inputmode="url" placeholder="https://instagram.com/you" maxlength="200" autocomplete="off" />
+        <input id="link2" type="url" inputmode="url" placeholder="https://x.com/you" maxlength="200" autocomplete="off" />
+        <input id="link3" type="url" inputmode="url" placeholder="https://your-site.com" maxlength="200" autocomplete="off" />
+
         <button id="saveBtn" class="primary" type="button">Save profile</button>
         <div id="msg" class="msg"></div>
       </div>
@@ -174,12 +180,15 @@
 
     async function loadProfile(){
       const { data, error } = await sb.from("profiles")
-        .select("username, display_name, bio, avatar_url").eq("id", userId).maybeSingle();
+        .select("username, display_name, bio, avatar_url, link1, link2, link3").eq("id", userId).maybeSingle();
       if (error){ setMsg(error.message, "err"); return; }
       if (data){
         $("username").value = data.username || "";
         $("display_name").value = data.display_name || "";
         $("bio").value = data.bio || "";
+        $("link1").value = data.link1 || "";
+        $("link2").value = data.link2 || "";
+        $("link3").value = data.link3 || "";
         setAvatar(data.avatar_url);
       }
     }
@@ -231,6 +240,13 @@
       setAvatar(null); setMsg("Photo removed.", "ok");
     }
 
+    function normUrl(v){
+      v = (v || "").trim();
+      if (!v) return null;
+      if (!/^https?:\/\//i.test(v)) v = "https://" + v;
+      return v;
+    }
+
     async function saveProfile(){
       const username = $("username").value.trim();
       const display_name = $("display_name").value.trim();
@@ -241,6 +257,9 @@
         username: username || null,
         display_name: display_name || null,
         bio: bio || null,
+        link1: normUrl($("link1").value),
+        link2: normUrl($("link2").value),
+        link3: normUrl($("link3").value),
         updated_at: new Date().toISOString()
       }).eq("id", userId);
       $("saveBtn").disabled = false;

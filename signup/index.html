@@ -49,7 +49,11 @@
       <label for="pass">Password</label>
       <input id="pass" type="password" autocomplete="new-password" placeholder="Password" required />
       <p class="hint">At least 6 characters.</p>
-      <div class="cf-turnstile" data-sitekey="0x4AAAAAAD1LVVRMkJKcUBeh" data-theme="dark" style="margin:2px 0 14px;"></div>
+      <label style="display:flex; gap:8px; align-items:center; justify-content:center; font-size:.82rem; color:var(--muted); margin:8px 0 14px; cursor:pointer;">
+        <input id="agree" type="checkbox" style="width:auto; margin:0; flex:0 0 auto;" />
+        <span>I'm 13+ and agree to the <a href="/terms" target="_blank" rel="noopener" style="color:#bcb6e6;">Terms</a> &amp; <a href="/privacy" target="_blank" rel="noopener" style="color:#bcb6e6;">Policy</a>.</span>
+      </label>
+      <div class="cf-turnstile" data-sitekey="0x4AAAAAAD1LVVRMkJKcUBeh" data-theme="dark" style="margin:2px auto 16px; display:flex; justify-content:center;"></div>
       <button id="submit" class="primary" type="submit">Create account</button>
     </form>
     <p class="note" id="note" role="status" aria-live="polite"></p>
@@ -69,9 +73,10 @@
       const password = $("pass").value;
       if (!email || !$("email").checkValidity()){ setNote("Enter a valid email.", "err"); return; }
       if (password.length < 6){ setNote("Password must be at least 6 characters.", "err"); return; }
+      if (!$("agree").checked){ setNote("Please confirm you're 13+ and agree to the Terms & Privacy Policy.", "err"); return; }
       const captchaToken = window.turnstile ? turnstile.getResponse() : "";
       $("submit").disabled = true; setNote("Creating your account…");
-      const suOpts = { emailRedirectTo: window.location.origin + "/profile?welcome=1" };
+      const suOpts = { emailRedirectTo: window.location.origin + "/profile?welcome=1", data: { terms_accepted_at: new Date().toISOString() } };
       if (captchaToken) suOpts.captchaToken = captchaToken;
       const { data, error } = await sb.auth.signUp({ email, password, options: suOpts });
       if (window.turnstile) try { turnstile.reset(); } catch (_) {}

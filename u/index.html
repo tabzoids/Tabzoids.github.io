@@ -53,7 +53,7 @@
     }
     .links a:hover{ border-color:var(--accent); color:#fff; }
 
-    .stats{ display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:22px; }
+    .stats{ display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-top:22px; }
     .stat{ background:var(--bg-elev); border:1px solid var(--border); border-radius:14px; padding:16px 10px; text-align:center; }
     .stat .num{ font-family:"Opsilon",var(--body); font-size:1.5rem; color:#cdbcff; line-height:1; }
     .stat .lab{ font-size:.68rem; letter-spacing:.06em; text-transform:uppercase; color:var(--muted); margin-top:7px; }
@@ -83,11 +83,9 @@
       </div>
 
       <div class="stats">
-        <div class="stat"><div class="num" id="statDiscovered">—</div><div class="lab">Tabs Discovered</div></div>
+        <div class="stat"><div class="num" id="statContributed">0</div><div class="lab">Contributed</div></div>
         <div class="stat"><div class="num" id="statSince">—</div><div class="lab">Member Since</div></div>
-        <div class="stat"><div class="num" id="statCollection">—</div><div class="lab">In Collection</div></div>
       </div>
-      <p class="soon">Discovery &amp; collection counts are coming soon.</p>
     </div>
   </main>
 
@@ -128,7 +126,7 @@
     async function load(){
       if (!username){ show("notfound"); return; }
       const { data, error } = await sb.from("profiles")
-        .select("username, display_name, bio, avatar_url, link1, link2, link3, created_at")
+        .select("id, username, display_name, bio, avatar_url, link1, link2, link3, created_at")
         .ilike("username", username).maybeSingle();
       if (error || !data){ show("notfound"); return; }
 
@@ -156,12 +154,11 @@
           .toLocaleDateString(undefined, { month: "short", year: "numeric" });
       }
 
-      // TODO(stats): wire these to real counts once the backend supports it.
-      //   Tabs Discovered  -> count of catalog tabs credited to this user (concept TBD)
-      //   In Collection    -> count of this user's tab_finds (needs a public-safe
-      //                       count RPC, since RLS hides other users' finds).
-      // $("statDiscovered").textContent = ...;
-      // $("statCollection").textContent = ...;
+      // Contributed — verified count of this user's approved catalog submissions
+      try {
+        const { data: cc } = await sb.rpc("public_contribution_count", { p_user_id: data.id });
+        $("statContributed").textContent = (cc ?? 0);
+      } catch (_) { /* leave default 0 */ }
 
       show("profile");
     }

@@ -55,6 +55,9 @@
       </label>
       <div class="cf-turnstile" data-sitekey="0x4AAAAAAD1LVVRMkJKcUBeh" data-theme="dark" style="margin:2px auto 16px; display:flex; justify-content:center;"></div>
       <button id="submit" class="primary" type="submit">Create account</button>
+      <div style="text-align:center; color:#6f6f80; font-size:.76rem; margin:14px 0 10px;">or</div>
+      <button id="magicBtn" type="button" style="width:100%; appearance:none; cursor:pointer; font-weight:600; font-family:var(--body); padding:11px 16px; border-radius:10px; font-size:.92rem; color:var(--ink); background:#1c1930; border:1px solid var(--border);">Email me a sign-up link</button>
+      <p style="text-align:center; color:#6f6f80; font-size:.72rem; margin:8px 2px 0;">No password needed — we'll email you a one-time link.</p>
     </form>
     <p class="note" id="note" role="status" aria-live="polite"></p>
     <p class="alt">Already have an account? <a href="/login">Log in</a></p>
@@ -89,6 +92,26 @@
         setNote("Almost there — check your email to confirm your account.", "ok");
         $("submit").disabled = false;
       }
+    });
+
+    // Passwordless: email a one-time sign-up/sign-in link (creates the account if new)
+    $("magicBtn").addEventListener("click", async () => {
+      const email = $("email").value.trim();
+      if (!email || !$("email").checkValidity()){ setNote("Enter a valid email.", "err"); return; }
+      if (!$("agree").checked){ setNote("Please confirm you're 13+ and agree to the Terms & Policy.", "err"); return; }
+      const captchaToken = window.turnstile ? turnstile.getResponse() : "";
+      $("magicBtn").disabled = true; setNote("Sending your link…");
+      const opts = {
+        emailRedirectTo: window.location.origin + "/profile?welcome=1",
+        shouldCreateUser: true,
+        data: { terms_accepted_at: new Date().toISOString() },
+      };
+      if (captchaToken) opts.captchaToken = captchaToken;
+      const { error } = await sb.auth.signInWithOtp({ email, options: opts });
+      if (window.turnstile) try { turnstile.reset(); } catch (_) {}
+      $("magicBtn").disabled = false;
+      if (error){ setNote(error.message || "Could not send link.", "err"); return; }
+      setNote("Check your email for your sign-in link.", "ok");
     });
   </script>
 </body>

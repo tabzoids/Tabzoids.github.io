@@ -113,7 +113,7 @@
 
     <main>
       <h1>Your Profile</h1>
-      <p class="sub">Your public tabist identity. Signed in as <b id="whoami"></b>.</p>
+      <p class="sub">Your public tabist identity. Signed in as <b id="whoami"></b>. <a id="publicLink" href="#" target="_blank" rel="noopener" style="color:#bcb6e6; display:none;">View public page ↗</a></p>
 
       <div class="card">
         <div class="avatar-block">
@@ -189,6 +189,11 @@
         $("link1").value = data.link1 || "";
         $("link2").value = data.link2 || "";
         $("link3").value = data.link3 || "";
+        if (data.username){
+          const pl = $("publicLink");
+          pl.href = "/u/?u=" + encodeURIComponent(data.username);
+          pl.style.display = "";
+        }
         setAvatar(data.avatar_url);
       }
     }

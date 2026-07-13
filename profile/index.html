@@ -115,7 +115,18 @@
       <h1>Your Profile</h1>
       <p class="sub">Your public tabist identity. Signed in as <b id="whoami"></b>. <a id="publicLink" href="#" target="_blank" rel="noopener" style="color:#bcb6e6; display:none;">View public page ↗</a></p>
 
-      <div class="card">
+      <div id="consentGate" class="card" style="display:none; margin-bottom:22px;">
+        <h2 style="font-family:'Opsilon',var(--body); font-weight:400; font-size:1.25rem; margin:0 0 6px; color:#eae9f4;">One quick thing</h2>
+        <p style="color:var(--muted); font-size:.92rem; line-height:1.55; margin:0 0 16px;">Welcome to Tabzoid! Before you start, please confirm:</p>
+        <label style="display:flex; gap:9px; align-items:flex-start; font-size:.92rem; color:var(--ink); margin:0 0 16px; cursor:pointer; line-height:1.5;">
+          <input id="consentCheck" type="checkbox" style="width:auto; margin:3px 0 0; flex:0 0 auto;" />
+          <span>I'm 13 or older and agree to the <a href="/terms" target="_blank" rel="noopener" style="color:#bcb6e6;">Terms</a> &amp; <a href="/privacy" target="_blank" rel="noopener" style="color:#bcb6e6;">Privacy Policy</a>.</span>
+        </label>
+        <button id="consentBtn" class="primary" type="button">Continue</button>
+        <div id="consentMsg" class="msg"></div>
+      </div>
+
+      <div id="profileCard" class="card">
         <div class="avatar-block">
           <div class="avatar" id="avatar"><span>🥫</span></div>
           <div class="avatar-actions">
@@ -180,7 +191,7 @@
 
     async function loadProfile(){
       const { data, error } = await sb.from("profiles")
-        .select("username, display_name, bio, avatar_url, link1, link2, link3").eq("id", userId).maybeSingle();
+        .select("username, display_name, bio, avatar_url, link1, link2, link3, terms_accepted_at").eq("id", userId).maybeSingle();
       if (error){ setMsg(error.message, "err"); return; }
       if (data){
         $("username").value = data.username || "";
@@ -195,8 +206,24 @@
           pl.style.display = "";
         }
         setAvatar(data.avatar_url);
+        if (!data.terms_accepted_at) showConsent();
       }
     }
+
+    function showConsent(){
+      $("consentGate").style.display = "";
+      $("profileCard").style.display = "none";
+      const dz = document.querySelector(".danger-zone"); if (dz) dz.style.display = "none";
+    }
+    $("consentBtn").addEventListener("click", async () => {
+      if (!$("consentCheck").checked){ const m = $("consentMsg"); m.className = "msg err"; m.textContent = "Please tick the box to continue."; return; }
+      $("consentBtn").disabled = true;
+      const { error } = await sb.from("profiles").update({ terms_accepted_at: new Date().toISOString() }).eq("id", userId);
+      if (error){ const m = $("consentMsg"); m.className = "msg err"; m.textContent = error.message; $("consentBtn").disabled = false; return; }
+      $("consentGate").style.display = "none";
+      $("profileCard").style.display = "";
+      const dz = document.querySelector(".danger-zone"); if (dz) dz.style.display = "";
+    });
 
     function setNavAva(url){
       const el = document.getElementById("navAva");

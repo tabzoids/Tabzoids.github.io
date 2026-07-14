@@ -67,6 +67,8 @@ Deno.serve(async (req) => {
           created_at: u.created_at,
           last_sign_in_at: u.last_sign_in_at ?? null,
           banned_until: (u as { banned_until?: string }).banned_until ?? null,
+          confirmed: !!((u as { email_confirmed_at?: string; confirmed_at?: string }).email_confirmed_at
+            ?? (u as { email_confirmed_at?: string; confirmed_at?: string }).confirmed_at),
           username: pmap[u.id]?.username ?? null,
           display_name: pmap[u.id]?.display_name ?? null,
           avatar_url: pmap[u.id]?.avatar_url ?? null,

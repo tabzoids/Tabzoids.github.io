@@ -522,7 +522,9 @@
         tr.innerHTML = '<td class="email"></td><td class="date"></td><td class="src"></td><td class="admin-cell"></td><td class="uacts"></td>';
         tr.querySelector(".email").textContent = u.email + (u.display_name ? (" · " + u.display_name) : "");
         tr.querySelector(".date").textContent = fmtDate(u.created_at);
-        tr.querySelector(".src").textContent = banned ? "Banned" : "Active";
+        const stCell = tr.querySelector(".src");
+        stCell.textContent = banned ? "Banned" : (u.confirmed === false ? "Pending" : "Active");
+        stCell.style.color = banned ? "#ff6b6b" : (u.confirmed === false ? "#e0a53d" : "");
         const ab = document.createElement("button"); ab.textContent = u.is_admin ? "Admin ✓" : "Make admin";
         if (u.is_admin) ab.classList.add("on");
         ab.addEventListener("click", () => toggleAdmin(u)); tr.querySelector(".admin-cell").appendChild(ab);

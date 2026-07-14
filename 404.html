@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lost tab — Tabzoid</title>
+  <meta name="robots" content="noindex" />
+  <link rel="canonical" href="https://tabzoid.com/404.html" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="preload" href="/fonts/TOOM-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/Opsilon-Regular.woff2" as="font" type="font/woff2" crossorigin>
+  <style>
+    @font-face{ font-family:"TOOM"; src:url("/fonts/TOOM-Regular.woff2") format("woff2"); font-weight:400; font-display:swap; }
+    @font-face{ font-family:"Opsilon"; src:url("/fonts/Opsilon-Regular.woff2") format("woff2"); font-weight:400; font-display:swap; }
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --ink:#ececf2; --muted:#9a9aaa;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;} html,body{margin:0; padding:0;}
+    body{
+      background:radial-gradient(1200px 600px at 50% -10%, rgba(138,102,255,.14), transparent 60%), var(--bg);
+      color:var(--ink); font-family:var(--body); min-height:100vh;
+      display:flex; flex-direction:column; align-items:center; justify-content:center;
+      text-align:center; padding:32px 22px; -webkit-font-smoothing:antialiased;
+    }
+    .code{
+      font-family:"TOOM",var(--body); font-size:clamp(5rem,22vw,11rem); line-height:.9;
+      letter-spacing:.04em; color:#fff; margin:0;
+      text-shadow:0 0 42px rgba(138,102,255,.45);
+    }
+    h1{
+      font-family:"TOOM",var(--body); text-transform:uppercase; letter-spacing:.12em;
+      font-weight:400; font-size:clamp(1.1rem,4vw,1.6rem); color:var(--accent); margin:14px 0 0;
+    }
+    p{ color:var(--muted); font-size:1rem; line-height:1.7; max-width:440px; margin:16px 0 0; }
+    .home{
+      display:inline-block; margin-top:28px; padding:13px 30px; border-radius:12px;
+      background:var(--accent-dark); color:#fff; text-decoration:none; font-weight:700;
+      font-size:.95rem; transition:background .15s, box-shadow .15s;
+    }
+    .home:hover{ background:var(--accent); box-shadow:0 0 28px rgba(138,102,255,.6); }
+    .links{ margin-top:22px; color:var(--muted); font-size:.85rem; }
+    .links a{ color:#bcb6e6; text-decoration:none; margin:0 8px; }
+    .links a:hover{ color:#fff; }
+    footer{ position:absolute; bottom:22px; color:#6f6f80; font-size:.8rem; }
+  </style>
+</head>
+<body>
+  <p class="code">404</p>
+  <h1>This tab popped off</h1>
+  <p>We looked everywhere in the compendium and couldn't find that page. It may have been moved, or the link lost its fizz.</p>
+  <a class="home" href="/">Back to Tabzoid</a>
+  <div class="links">
+    <a href="/contact">Contact</a>&bull;<a href="/terms">Terms</a>&bull;<a href="/privacy">Privacy</a>
+  </div>
+  <footer>&copy; <span id="yr"></span> Tabzoid&trade;</footer>
+  <script>document.getElementById("yr").textContent = new Date().getFullYear();</script>
+</body>
+</html>

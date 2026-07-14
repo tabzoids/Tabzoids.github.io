@@ -1,0 +1,14 @@
+User-agent: *
+Allow: /
+
+# App / account pages — no SEO value, keep out of the index
+Disallow: /admin/
+Disallow: /profile/
+Disallow: /tabs/
+Disallow: /reset/
+Disallow: /login/
+Disallow: /signup/
+Disallow: /lab/
+Disallow: /account-test.html
+
+Sitemap: https://tabzoid.com/sitemap.xml

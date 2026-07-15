@@ -28,9 +28,9 @@
     /* Sidebar */
     aside.rail{ border-right:1px solid var(--border); background:rgba(22,22,28,.5); padding:16px 12px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; overflow-y:auto; }
     .rail-top{ display:flex; align-items:center; justify-content:space-between; padding:2px 6px 16px; }
-    .rail-brand{ font-family:"Opsilon",var(--body); font-size:1.15rem; color:#eae9f4; text-decoration:none; display:flex; align-items:center; gap:8px; }
-    .rail-brand small{ font-family:var(--body); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); border:1px solid var(--border); border-radius:6px; padding:2px 5px; }
-    .rail-collapse{ background:transparent; border:none; color:var(--faint); cursor:pointer; font-size:1rem; padding:4px; border-radius:6px; }
+    .rail-brand{ font-family:"Opsilon",var(--body); font-size:1.3rem; color:#eae9f4; text-decoration:none; letter-spacing:.01em; }
+    .rail-collapse{ background:transparent; border:none; color:var(--faint); cursor:pointer; padding:4px; border-radius:6px; display:flex; align-items:center; justify-content:center; }
+    .rail-collapse svg{ width:18px; height:18px; display:block; }
     .rail-collapse:hover{ color:#fff; background:var(--bg-elev); }
     .rail-group{ font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin:16px 8px 6px; }
     .rail-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; width:100%; text-align:left; font-family:inherit; padding:8px 10px; border-radius:9px; color:var(--muted); text-decoration:none; font-size:.86rem; font-weight:600; border:1px solid transparent; background:transparent; transition:color .15s, background .15s, border-color .15s; cursor:pointer; }
@@ -154,8 +154,8 @@
     <div class="scrim" id="scrim"></div>
     <aside class="rail">
       <div class="rail-top">
-        <a class="rail-brand" href="/">Tabzoid <small>Tabmin</small></a>
-        <button class="rail-collapse" id="railClose" type="button" aria-label="Hide menu">&#171;</button>
+        <a class="rail-brand" href="/">Tabmin Panel</a>
+        <button class="rail-collapse" id="railClose" type="button" aria-label="Hide menu"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg></button>
       </div>
 
       <div class="rail-group">Overview</div>

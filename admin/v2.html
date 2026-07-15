@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="robots" content="noindex, nofollow" />
+  <title>Tabmin Panel — Tabzoid</title>
+
+  <link rel="icon" href="../favicon.ico" sizes="any" />
+  <link rel="icon" type="image/png" href="../favicon.png" />
+  <link rel="preload" href="../fonts/Opsilon-Regular.woff2" as="font" type="font/woff2" crossorigin>
+
+  <style>
+    @font-face{ font-family:"Opsilon"; src:url("../fonts/Opsilon-Regular.woff2") format("woff2"); font-weight:400; font-display:swap; }
+    :root{
+      --bg:#0e0e12; --bg-elev:#16161c; --bg-elev2:#1c1930; --ink:#ececf2; --muted:#9a9aaa; --faint:#6f6f80;
+      --accent:#8a66ff; --accent-dark:#6b3fe4; --border:#25252e; --danger:#ff6b6b; --ok:#57d38c; --warn:#e0a53d;
+      --body:system-ui,-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    }
+    *{box-sizing:border-box;} html,body{margin:0; padding:0;}
+    body{
+      background:radial-gradient(1200px 600px at 50% -10%, rgba(138,102,255,.14), transparent 60%), var(--bg);
+      color:var(--ink); font-family:var(--body); min-height:100vh; -webkit-font-smoothing:antialiased;
+    }
+    body.loading .app{ display:none; }
+
+    .app{ display:grid; grid-template-columns:222px 1fr; min-height:100vh; }
+
+    /* Sidebar */
+    aside.rail{ border-right:1px solid var(--border); background:rgba(22,22,28,.5); padding:16px 12px; display:flex; flex-direction:column; position:sticky; top:0; height:100vh; }
+    .rail-top{ display:flex; align-items:center; justify-content:space-between; padding:2px 6px 16px; }
+    .rail-brand{ font-family:"Opsilon",var(--body); font-size:1.15rem; color:#eae9f4; text-decoration:none; display:flex; align-items:center; gap:8px; }
+    .rail-brand small{ font-family:var(--body); font-size:.6rem; letter-spacing:.14em; text-transform:uppercase; color:var(--accent); border:1px solid var(--border); border-radius:6px; padding:2px 5px; }
+    .rail-collapse{ background:transparent; border:none; color:var(--faint); cursor:pointer; font-size:1rem; padding:4px; border-radius:6px; }
+    .rail-collapse:hover{ color:#fff; background:var(--bg-elev); }
+    .rail-group{ font-size:.62rem; letter-spacing:.12em; text-transform:uppercase; color:var(--faint); margin:16px 8px 6px; }
+    .rail-item{ display:flex; align-items:center; justify-content:space-between; gap:8px; padding:8px 10px; border-radius:9px; color:var(--muted); text-decoration:none; font-size:.86rem; font-weight:600; border:1px solid transparent; transition:color .15s, background .15s, border-color .15s; cursor:pointer; }
+    .rail-item:hover{ color:#fff; background:var(--bg-elev); }
+    .rail-item.active{ color:#fff; background:var(--bg-elev2); border-color:var(--accent); }
+    .rail-item .count{ font-size:.72rem; font-weight:600; color:var(--faint); }
+    .rail-item.soon{ color:var(--faint); cursor:default; }
+    .rail-item.soon:hover{ background:transparent; color:var(--faint); }
+    .soon-pill{ font-size:.56rem; font-weight:700; letter-spacing:.04em; text-transform:uppercase; color:var(--faint); background:var(--bg-elev); border:1px solid var(--border); border-radius:6px; padding:1px 6px; }
+    .rail-user{ margin-top:auto; display:flex; align-items:center; gap:9px; padding:10px 6px 2px; border-top:1px solid var(--border); }
+    .rail-ava{ width:30px; height:30px; border-radius:50%; overflow:hidden; background:#0f0f15; border:1px solid var(--border); display:flex; align-items:center; justify-content:center; font-size:.9rem; flex:0 0 auto; }
+    .rail-ava img{ width:100%; height:100%; object-fit:cover; }
+    .rail-user .who{ line-height:1.2; min-width:0; }
+    .rail-user .who b{ font-size:.82rem; color:#eae9f4; font-weight:600; display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+    .rail-user .who span{ font-size:.7rem; color:var(--faint); }
+    .rail-logout{ margin-left:auto; background:transparent; border:none; color:var(--faint); cursor:pointer; font-size:.72rem; padding:4px 6px; border-radius:6px; flex:0 0 auto; }
+    .rail-logout:hover{ color:var(--danger); background:#0f0f15; }
+
+    /* Main column */
+    .col{ display:flex; flex-direction:column; min-width:0; }
+    header.top{ display:flex; align-items:center; gap:12px; padding:14px 24px; border-bottom:1px solid var(--border); position:sticky; top:0; background:rgba(14,14,18,.85); backdrop-filter:blur(6px); z-index:5; }
+    .menu-btn{ display:none; background:transparent; border:1px solid var(--border); border-radius:8px; color:var(--muted); cursor:pointer; padding:6px 9px; }
+    .search{ flex:1; max-width:420px; display:flex; align-items:center; gap:8px; height:36px; padding:0 12px; border:1px solid var(--border); border-radius:10px; color:var(--faint); background:var(--bg-elev); font-size:.85rem; }
+    .search input{ flex:1; background:transparent; border:none; color:var(--ink); font:inherit; outline:none; }
+    .top-spacer{ flex:1; }
+    .icon-btn{ position:relative; width:36px; height:36px; border:1px solid var(--border); border-radius:10px; background:var(--bg-elev); color:var(--muted); cursor:pointer; display:inline-flex; align-items:center; justify-content:center; }
+    .icon-btn:hover{ border-color:var(--accent); color:#fff; }
+    .badge-dot{ position:absolute; top:-5px; right:-5px; min-width:16px; height:16px; padding:0 4px; border-radius:999px; background:var(--accent-dark); color:#fff; font-size:.62rem; font-weight:700; display:flex; align-items:center; justify-content:center; }
+
+    main.view{ padding:26px 24px 64px; max-width:1000px; }
+    .denied{ padding:26px 16px; color:var(--danger); text-align:center; font-size:.95rem; }
+    h1{ font-family:"Opsilon",var(--body); font-weight:400; font-size:1.7rem; margin:0 0 3px; }
+    .sub{ color:var(--muted); margin:0 0 24px; font-size:.92rem; }
+
+    .cards{ display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:14px; margin-bottom:16px; }
+    .kpi{ background:var(--bg-elev); border:1px solid var(--border); border-radius:14px; padding:16px 18px; }
+    .kpi .label{ font-size:.82rem; color:var(--muted); }
+    .kpi .num{ font-family:"Opsilon",var(--body); font-weight:400; font-size:2rem; line-height:1.1; margin:8px 0 2px; color:#f2f0fb; }
+    .kpi .foot{ font-size:.74rem; color:var(--faint); }
+    .kpi .foot.ok{ color:var(--ok); } .kpi .foot.warn{ color:var(--warn); }
+
+    .charts{ display:grid; grid-template-columns:1fr 1fr; gap:14px; margin-top:4px; }
+    .slot{ border:1px dashed #35333f; border-radius:14px; min-height:150px; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:var(--faint); padding:22px 16px; }
+    .slot .st{ color:var(--muted); font-size:.9rem; margin:8px 0 3px; }
+    .slot .sm{ font-size:.74rem; }
+    .slot svg{ width:26px; height:26px; opacity:.5; }
+
+    .scrim{ display:none; }
+    @media (max-width:760px){
+      .app{ grid-template-columns:1fr; }
+      aside.rail{ position:fixed; z-index:30; width:240px; left:0; top:0; transform:translateX(-100%); transition:transform .2s; }
+      body.rail-open aside.rail{ transform:none; }
+      body.rail-open .scrim{ display:block; position:fixed; inset:0; background:rgba(0,0,0,.5); z-index:20; }
+      .menu-btn{ display:inline-flex; }
+      .charts{ grid-template-columns:1fr; }
+    }
+  </style>
+</head>
+<body class="loading">
+  <div class="app">
+    <div class="scrim" id="scrim"></div>
+    <aside class="rail">
+      <div class="rail-top">
+        <a class="rail-brand" href="/">Tabzoid <small>Tabmin</small></a>
+        <button class="rail-collapse" id="railClose" type="button" aria-label="Hide menu">&#171;</button>
+      </div>
+
+      <div class="rail-group">Overview</div>
+      <a class="rail-item active" href="/admin/v2">Dashboard</a>
+
+      <div class="rail-group">Catalog</div>
+      <a class="rail-item" href="/admin">Vault <span class="count" id="cVault">·</span></a>
+      <a class="rail-item" href="/admin">Submissions <span class="count" id="cSubs">·</span></a>
+      <span class="rail-item soon">Brands <span class="soon-pill">soon</span></span>
+      <span class="rail-item soon">Patents <span class="soon-pill">soon</span></span>
+
+      <div class="rail-group">Community</div>
+      <a class="rail-item" href="/admin">Users <span class="count" id="cUsers">·</span></a>
+      <a class="rail-item" href="/admin">Waitlist <span class="count" id="cWait">·</span></a>
+      <a class="rail-item" href="/admin">Messages <span class="count" id="cMsg">·</span></a>
+
+      <div class="rail-group">System</div>
+      <span class="rail-item soon">Email Templates <span class="soon-pill">soon</span></span>
+      <span class="rail-item soon">Settings <span class="soon-pill">soon</span></span>
+      <span class="rail-item soon">Analytics <span class="soon-pill">soon</span></span>
+
+      <div class="rail-user">
+        <span class="rail-ava" id="railAva">&#129387;</span>
+        <span class="who"><b id="railName">admin</b><span>Admin</span></span>
+        <button class="rail-logout" id="logoutBtn" type="button">Log out</button>
+      </div>
+    </aside>
+
+    <div class="col">
+      <header class="top">
+        <button class="menu-btn" id="menuBtn" type="button" aria-label="Open menu">&#9776;</button>
+        <div class="search"><span aria-hidden="true">&#128269;</span><input type="text" placeholder="Search (coming soon)" disabled /></div>
+        <div class="top-spacer"></div>
+        <button class="icon-btn" id="bellBtn" type="button" aria-label="Notifications" title="Pending items">&#128276;<span class="badge-dot" id="bellBadge" style="display:none">0</span></button>
+        <a class="icon-btn" href="/" aria-label="View site" title="View site">&#8599;</a>
+      </header>
+
+      <main class="view">
+        <div id="denied" class="denied" style="display:none">You're signed in, but this account isn't an admin.</div>
+
+        <div id="panel" style="display:none">
+          <h1>Dashboard</h1>
+          <p class="sub">A live count of what's in the archive today.</p>
+
+          <div class="cards">
+            <div class="kpi"><div class="label">Total tabs</div><div class="num" id="kTabs">…</div><div class="foot">in the Vault</div></div>
+            <div class="kpi"><div class="label">Registered users</div><div class="num" id="kUsers">…</div><div class="foot" id="kUsersFoot">&nbsp;</div></div>
+            <div class="kpi"><div class="label">Waitlist signups</div><div class="num" id="kWait">…</div><div class="foot">all time</div></div>
+            <div class="kpi"><div class="label">Pending submissions</div><div class="num" id="kSubs">…</div><div class="foot" id="kSubsFoot">&nbsp;</div></div>
+          </div>
+
+          <div class="charts">
+            <div class="slot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
+              <div class="st">Signups over time</div><div class="sm">Deferred — needs real activity</div>
+            </div>
+            <div class="slot">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-6.2-8.6"/><path d="M21 12a9 9 0 0 0-9-9v9z"/></svg>
+              <div class="st">Submission pipeline</div><div class="sm">Deferred — needs real activity</div>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script>
+    const SUPABASE_URL = "https://bgutoifpdohhlbhesjql.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_QfdIsgHMDn1kr4fszUeJ9g_HSKWLru-";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    const $ = (id) => document.getElementById(id);
+
+    // mobile rail toggle
+    const openRail = () => document.body.classList.add("rail-open");
+    const closeRail = () => document.body.classList.remove("rail-open");
+    $("menuBtn").addEventListener("click", openRail);
+    $("railClose").addEventListener("click", closeRail);
+    $("scrim").addEventListener("click", closeRail);
+
+    $("logoutBtn").addEventListener("click", async () => { await sb.auth.signOut(); window.location.replace("/"); });
+    sb.auth.onAuthStateChange((event) => { if (event === "SIGNED_OUT") window.location.replace("/"); });
+
+    async function callAdmin(action, payload = {}) {
+      const { data, error } = await sb.functions.invoke("admin-users", { body: { action, ...payload } });
+      if (error) throw error;
+      if (data && data.error) throw new Error(data.error);
+      return data;
+    }
+    const n = (v) => (typeof v === "number" ? v.toLocaleString() : "—");
+
+    async function loadCounts() {
+      // Independent count queries + the admin user list, in parallel.
+      const tabsQ = sb.from("zoid_vault").select("id", { count: "exact", head: true });
+      const waitQ = sb.from("waitlist").select("id", { count: "exact", head: true });
+      const msgQ  = sb.from("contact_messages").select("id", { count: "exact", head: true });
+      const subsQ = sb.from("tab_finds").select("id", { count: "exact", head: true }).eq("review_status", "submitted");
+
+      const [tabs, wait, msg, subs] = await Promise.all([tabsQ, waitQ, msgQ, subsQ]);
+
+      const tabCount = tabs.error ? null : tabs.count;
+      const waitCount = wait.error ? null : wait.count;
+      const msgCount = msg.error ? null : msg.count;
+      const subCount = subs.error ? null : subs.count;
+
+      $("kTabs").textContent = n(tabCount);   $("cVault").textContent = n(tabCount);
+      $("kWait").textContent = n(waitCount);   $("cWait").textContent = n(waitCount);
+      $("cMsg").textContent = n(msgCount);
+      $("kSubs").textContent = n(subCount);    $("cSubs").textContent = n(subCount);
+      if (subCount === 0) { $("kSubsFoot").textContent = "nothing to review"; $("kSubsFoot").className = "foot ok"; }
+      else if (typeof subCount === "number") { $("kSubsFoot").textContent = "awaiting review"; $("kSubsFoot").className = "foot warn"; }
+      if (typeof subCount === "number" && subCount > 0) { $("bellBadge").textContent = subCount; $("bellBadge").style.display = "flex"; }
+
+      // Users + pending confirm come from the admin edge function.
+      try {
+        const d = await callAdmin("list");
+        const users = d.users || [];
+        const total = users.length;
+        const pending = users.filter((u) => u.confirmed === false).length;
+        $("kUsers").textContent = n(total); $("cUsers").textContent = n(total);
+        if (pending > 0) { $("kUsersFoot").textContent = pending + " pending confirm"; $("kUsersFoot").className = "foot warn"; }
+        else { $("kUsersFoot").textContent = "all confirmed"; $("kUsersFoot").className = "foot ok"; }
+      } catch (e) {
+        $("kUsers").textContent = "—"; $("kUsersFoot").textContent = "couldn't load"; $("cUsers").textContent = "—";
+      }
+    }
+
+    async function guard() {
+      const { data: { session } } = await sb.auth.getSession();
+      if (!session) { window.location.replace("/"); return null; }
+      document.body.classList.remove("loading");
+      return session;
+    }
+
+    (async () => {
+      const session = await guard();
+      if (!session) return;
+      const { data: prof } = await sb.from("profiles").select("is_admin, avatar_url, username, display_name").eq("id", session.user.id).maybeSingle();
+      if (prof) {
+        if (prof.avatar_url) $("railAva").innerHTML = '<img src="' + prof.avatar_url + '" alt="">';
+        $("railName").textContent = prof.display_name || prof.username || (session.user.email || "admin").split("@")[0];
+      }
+      if (!prof || !prof.is_admin) { $("denied").style.display = "block"; return; }
+      $("panel").style.display = "block";
+      loadCounts();
+    })();
+  </script>
+</body>
+</html>
